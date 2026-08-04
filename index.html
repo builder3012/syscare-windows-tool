@@ -1,0 +1,94 @@
+#requires -Version 5.1
+<#
+.SYNOPSIS
+    Trinh khoi chay tu chua cho Tool Windows cua JoIT.
+.DESCRIPTION
+    File nay chua ban Tool_Windows.bat da nen. Khi chay, script se:
+    1. Giai nen BAT vao thu muc tam cua nguoi dung.
+    2. Kiem tra SHA-256 de phat hien noi dung bi hong/thay doi.
+    3. Tu xin quyen Administrator neu can.
+    4. Mo menu Tool Windows bang Command Prompt.
+
+    Lenh sau khi da dang file nay tai mot URL HTTPS:
+      irm https://TEN-MIEN-CUA-ANH/run | iex
+
+    Luu y bao mat: chi dung URL do chinh anh quan ly.
+#>
+
+[CmdletBinding()]
+param()
+
+Set-StrictMode -Version 2.0
+$ErrorActionPreference = 'Stop'
+
+$ToolName = 'JoIT Windows Tool'
+$ToolVersion = '1.0.0'
+$ExpectedBatSha256 = '8C0B68A9EE775C4449C4831188C0E7EA3B74D383C43A34998F232484CD53DFA7'
+$EmbeddedBatGzipBase64 = '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'
+
+function Test-IsAdministrator {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Expand-EmbeddedBat {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Destination
+    )
+
+    $compressedBytes = [Convert]::FromBase64String($EmbeddedBatGzipBase64)
+    $inputStream = [IO.MemoryStream]::new()
+    $inputStream.Write($compressedBytes, 0, $compressedBytes.Length)
+    $inputStream.Position = 0
+    $gzipStream = [IO.Compression.GZipStream]::new(
+        $inputStream,
+        [IO.Compression.CompressionMode]::Decompress
+    )
+    $outputStream = [IO.File]::Create($Destination)
+
+    try {
+        $gzipStream.CopyTo($outputStream)
+    }
+    finally {
+        $outputStream.Dispose()
+        $gzipStream.Dispose()
+        $inputStream.Dispose()
+    }
+}
+
+if ($env:OS -ne 'Windows_NT') {
+    throw "$ToolName chi ho tro Windows 10/11."
+}
+
+$toolDirectory = Join-Path $env:LOCALAPPDATA 'JoIT\WindowsTool'
+$batPath = Join-Path $toolDirectory "Tool_Windows_$ToolVersion.bat"
+
+[IO.Directory]::CreateDirectory($toolDirectory) | Out-Null
+Expand-EmbeddedBat -Destination $batPath
+
+$actualHash = (Get-FileHash -LiteralPath $batPath -Algorithm SHA256).Hash.ToUpperInvariant()
+if ($actualHash -ne $ExpectedBatSha256) {
+    Remove-Item -LiteralPath $batPath -Force -ErrorAction SilentlyContinue
+    throw "Kiem tra SHA-256 that bai. Da huy chay tool de bao ve may."
+}
+
+$argumentList = @('/D', '/C', ('"{0}"' -f $batPath))
+
+if (Test-IsAdministrator) {
+    $process = Start-Process -FilePath $env:ComSpec -ArgumentList $argumentList -Wait -PassThru
+}
+else {
+    Write-Host "Dang yeu cau quyen Administrator cho $ToolName..." -ForegroundColor Cyan
+    try {
+        $process = Start-Process -FilePath $env:ComSpec -ArgumentList $argumentList -Verb RunAs -Wait -PassThru
+    }
+    catch {
+        throw "Khong the mo tool: nguoi dung da tu choi UAC hoac tai khoan khong co quyen Administrator."
+    }
+}
+
+if ($null -ne $process -and $process.ExitCode -notin @(0, 1)) {
+    Write-Warning "$ToolName ket thuc voi ma $($process.ExitCode)."
+}
