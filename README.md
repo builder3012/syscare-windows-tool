@@ -1,124 +1,173 @@
-# JoIT Windows Tool
+# Syscare Windows Tool v2.0.0
 
-Bộ công cụ sửa lỗi, chẩn đoán và bảo trì Windows 10/11. Tool chạy bằng menu CMD, tự kiểm tra tính toàn vẹn của file BAT và yêu cầu quyền Administrator khi cần.
+Bộ công cụ hỗ trợ IT helpdesk và hạ tầng tại chỗ trên Windows 10/11, tối ưu cho thao tác nhanh, lưu bằng chứng xử lý và đáp ứng SLA. Menu chính vẫn chạy bằng BAT; các báo cáo chuyên sâu được thực hiện bởi mô-đun PowerShell đi kèm.
 
-## Cấu trúc
-
-```text
-JoIT-Windows-Tool
-├── index.html
-├── Invoke-JoITWindowsTool.ps1
-├── Tool_Windows.bat
-├── .nojekyll
-└── README.md
-```
-
-| File | Chức năng |
-|---|---|
-| `index.html` | Bản sao nguyên vẹn của launcher PowerShell để GitHub Pages trả về khi truy cập tên miền gốc. |
-| `Invoke-JoITWindowsTool.ps1` | Launcher tự chứa: giải nén BAT, kiểm tra SHA-256, xin quyền Administrator và mở tool. |
-| `Tool_Windows.bat` | Mã nguồn menu công cụ Windows. |
-| `.nojekyll` | Yêu cầu GitHub Pages phát hành tệp tĩnh nguyên bản. |
-| `README.md` | Hướng dẫn triển khai và sử dụng. |
-
-## Chức năng chính
-
-- SFC, DISM và CHKDSK.
-- Sửa mạng: Flush DNS, Winsock, TCP/IP, DHCP và Wi-Fi.
-- Kiểm tra ổ đĩa, RAM, pin và nguồn.
-- Công cụ khởi động, phục hồi, driver và thiết bị.
-- Windows Defender, Firewall, Windows Update và bản quyền.
-- Chẩn đoán, quản trị, máy in và các tiện ích hệ thống.
-- Tạo báo cáo chẩn đoán tổng hợp trên Desktop.
-
-## Chạy trực tiếp trên máy
-
-### Dùng file BAT
-
-Nhấp chuột phải vào `Tool_Windows.bat`, chọn **Run as administrator**.
-
-### Dùng launcher PowerShell
-
-Mở Windows PowerShell trong thư mục dự án và chạy:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\Invoke-JoITWindowsTool.ps1
-```
-
-## Triển khai lên GitHub Pages
-
-1. Tạo repository public trên GitHub, ví dụ `joit-windows-tool`.
-2. Đưa toàn bộ năm file trong thư mục này lên thư mục gốc của nhánh `main`.
-3. Vào **Settings → Pages**.
-4. Chọn **Deploy from a branch**, nhánh `main`, thư mục `/ (root)`.
-5. Trong **Custom domain**, nhập `win.syscare.site` và lưu.
-6. Tại nơi quản lý DNS của `syscare.site`, tạo bản ghi:
-
-   | Type | Host | Value | TTL |
-   |---|---|---|---|
-   | CNAME | `win` | `TEN_GITHUB.github.io` | Auto hoặc 300 |
-
-7. Thay `TEN_GITHUB` bằng đúng tên tài khoản GitHub. Không thêm `https://` hoặc tên repository vào giá trị CNAME.
-8. Khi GitHub xác nhận DNS hợp lệ, bật **Enforce HTTPS**.
-
-GitHub có thể tự tạo file `CNAME` khi lưu custom domain. Nếu tạo thủ công, file `CNAME` chỉ chứa một dòng:
-
-```text
-win.syscare.site
-```
-
-## Kiểm tra trước khi chạy
-
-Đầu tiên chỉ tải nội dung để kiểm tra, chưa thực thi:
-
-```powershell
-$code = [string](irm https://win.syscare.site)
-$code.Substring(0, [Math]::Min(500, $code.Length))
-```
-
-Nội dung phải bắt đầu bằng `#requires -Version 5.1`, không phải trang HTML hoặc lỗi 404.
-
-Sau khi kiểm tra, chạy tool bằng câu lệnh chính thức:
+Lệnh sử dụng chính thức:
 
 ```powershell
 irm https://win.syscare.site | iex
 ```
 
-Nếu đang ở Command Prompt:
+## Điểm mới của v2.0.0
 
-```bat
-powershell -NoProfile -Command "irm https://win.syscare.site | iex"
+- One-click Quick Triage: hệ thống, ổ đĩa, RAM, mạng, DNS, gateway, Internet, AD, GPO, Kerberos, time, máy in, Defender, Update và Event Log.
+- Kết luận nhanh `PASS` hoặc `ATTENTION`, có TXT, JSON và HTML.
+- Chẩn đoán riêng theo nhóm: Network, Domain/AD/GPO, Performance, Printer và Windows Update/Security.
+- Test hostname/IP và danh sách TCP port tùy chọn, không ghép nội dung người dùng vào lệnh shell.
+- Gói Incident Bundle ZIP phục vụ escalation, kèm manifest SHA-256.
+- Biên bản ticket: mã sự cố, hiện trạng, tác vụ, kết quả và bước tiếp theo.
+- Session log tự động tại `%ProgramData%\Syscare\WindowsTool\Logs`.
+- Quy trình build một lệnh, tự nhúng và kiểm tra SHA-256 của cả BAT lẫn mô-đun PowerShell.
+- Cảnh báo dữ liệu nhạy cảm được đặt trong mọi thư mục báo cáo.
+
+## Cấu trúc phát hành
+
+| File | Chức năng |
+|---|---|
+| `Tool_Windows.bat` | Menu chính và các lệnh sửa lỗi/tiện ích tại chỗ. |
+| `Syscare.WindowsTool.ps1` | Quick Triage, báo cáo chuyên sâu, ticket và Incident Bundle. |
+| `Invoke-JoITWindowsTool.ps1` | Launcher tự chứa; giải nén và xác minh SHA-256 hai payload trước khi chạy. |
+| `index.html` | Bản sao byte-for-byte của launcher để phát hành tại `win.syscare.site`. |
+| `Build-Release.ps1` | Tự tạo launcher, index, checksum và release manifest. |
+| `Build-Release.mjs` | Builder tương đương cho CI/Linux, chỉ dùng module có sẵn của Node.js. |
+| `checksums.sha256` | SHA-256 của các file phát hành. |
+| `release-manifest.json` | Phiên bản, thời điểm build và metadata payload. |
+| `AUDIT_REPORT.md` | Kết quả rà soát, thay đổi và đề xuất lộ trình. |
+| `TEST_REPORT.md` | Kết quả kiểm thử tự động và checklist smoke test Windows. |
+| `CHANGELOG.md` | Lịch sử phiên bản. |
+| `CNAME` | Custom domain GitHub Pages. |
+| `.nojekyll` | Phát hành file tĩnh nguyên bản trên GitHub Pages. |
+
+## Cách dùng tại hiện trường
+
+1. Mở Windows PowerShell.
+2. Kiểm tra nội dung trước khi thực thi:
+
+   ```powershell
+   $code = [string](irm 'https://win.syscare.site/?check=1')
+   $code.Substring(0, [Math]::Min(500, $code.Length))
+   ```
+
+3. Nội dung phải bắt đầu bằng `#requires -Version 5.1` và có tên `Syscare Windows Tool`.
+4. Chạy:
+
+   ```powershell
+   irm https://win.syscare.site | iex
+   ```
+
+5. Chấp nhận UAC, sau đó ưu tiên `[A] SLA QUICK TRIAGE`.
+6. Với sự cố chưa rõ nguyên nhân, chạy `[A] → [1] One-click Quick Triage` trước khi sửa.
+7. Với sự cố phải chuyển cấp, chạy `[A] → [A]` hoặc `[9] → [2]` để tạo Incident Bundle ZIP.
+
+Đầu ra được lưu tại:
+
+```text
+Desktop\Syscare_Support
 ```
 
-## Cập nhật tool
+Nhật ký thao tác được lưu tại:
 
-Launcher đang chứa toàn bộ `Tool_Windows.bat` ở dạng nén. Vì vậy, sau khi sửa BAT phải tạo lại launcher và cập nhật đồng thời ba file:
+```text
+%ProgramData%\Syscare\WindowsTool\Logs
+```
+
+## Ma trận xử lý SLA gợi ý
+
+| Tình huống | Thao tác đầu tiên | Tác vụ tiếp theo |
+|---|---|---|
+| Máy chậm/treo | Quick Triage | Performance; kiểm tra top CPU/RAM, dung lượng và Event Log |
+| Không vào mạng | Network | Test gateway, DNS, Internet 443; chỉ reset sau khi xác nhận không điều khiển từ xa |
+| Không vào domain/share | Domain/AD/GPO | Secure channel, DC discovery, Kerberos, time; test port 53/88/389/445 tùy hệ thống |
+| Không in được | Printer | Xem queue/port/Spooler; chỉ xóa queue sau xác nhận |
+| Update lỗi | Windows Update/Security | Kiểm tra service, policy, reboot pending và hotfix |
+| Chưa xác định nguyên nhân | Incident Bundle | Gắn mã ticket, rà soát dữ liệu rồi escalation |
+
+## Chạy cục bộ
+
+Giữ hai file sau trong cùng thư mục:
 
 ```text
 Tool_Windows.bat
-Invoke-JoITWindowsTool.ps1
-index.html
+Syscare.WindowsTool.ps1
 ```
 
-`index.html` phải luôn giống hoàn toàn `Invoke-JoITWindowsTool.ps1`.
+Nhấp phải `Tool_Windows.bat` và chọn **Run as administrator**. Nếu thiếu mô-đun PowerShell, các menu Windows truyền thống vẫn hoạt động; nhóm SLA sẽ dừng an toàn và báo file bị thiếu.
 
-## SHA-256 phiên bản hiện tại
+## Quy trình cập nhật chuẩn
 
-```text
-Invoke-JoITWindowsTool.ps1
-48292C15AB88D7A0015727BAF55A078573B4B266DF36BA4DAD2124AB6D584A7E
+### 1. Sửa nguồn
 
-Tool_Windows.bat
-8C0B68A9EE775C4449C4831188C0E7EA3B74D383C43A34998F232484CD53DFA7
-```
+- Menu/lệnh tại chỗ: sửa `Tool_Windows.bat`.
+- Báo cáo/chẩn đoán chuyên sâu: sửa `Syscare.WindowsTool.ps1`.
+- Cập nhật `TOOL_VERSION` trong BAT theo SemVer.
+- Ghi thay đổi vào `CHANGELOG.md`.
 
-Tính lại mã kiểm tra sau khi cập nhật:
+### 2. Build phát hành
+
+Chạy trong Windows PowerShell 5.1 trở lên:
 
 ```powershell
-Get-FileHash .\Invoke-JoITWindowsTool.ps1 -Algorithm SHA256
-Get-FileHash .\Tool_Windows.bat -Algorithm SHA256
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Build-Release.ps1
 ```
 
-## Lưu ý bảo mật
+Build sẽ tự động:
 
-Lệnh `irm ... | iex` tải và chạy mã từ Internet với quyền cao. Chỉ sử dụng URL do chính bạn quản lý, bật MFA cho GitHub, giới hạn quyền ghi repository và luôn kiểm tra nội dung trước khi phát hành.
+1. Đọc phiên bản từ BAT.
+2. Nén và nhúng BAT + Core PowerShell vào launcher.
+3. Cập nhật hash mong đợi cho cả hai payload.
+4. Tạo `Invoke-JoITWindowsTool.ps1`.
+5. Tạo `index.html` giống hệt launcher.
+6. Tạo `checksums.sha256` và `release-manifest.json`.
+
+### 3. Kiểm tra trước phát hành
+
+```powershell
+$a = (Get-FileHash .\Invoke-JoITWindowsTool.ps1 -Algorithm SHA256).Hash
+$b = (Get-FileHash .\index.html -Algorithm SHA256).Hash
+$a -eq $b
+Get-Content .\release-manifest.json | ConvertFrom-Json | Format-List
+```
+
+Kết quả so sánh phải là `True`. Sau đó chạy BAT trực tiếp trên máy test, rồi chạy launcher cục bộ.
+
+### 4. Đẩy lên GitHub
+
+```powershell
+git status
+git add .
+git commit -m "Release v2.0.0 - SLA quick triage and incident bundle"
+git push origin main
+git tag -a v2.0.0 -m "Syscare Windows Tool v2.0.0"
+git push origin v2.0.0
+```
+
+Chờ workflow **pages build and deployment** thành công. Không sửa DNS, CNAME hoặc custom domain khi chỉ cập nhật tính năng.
+
+### 5. Kiểm tra bản online
+
+```powershell
+$url = 'https://win.syscare.site/?v=2.0.0'
+$online = [string](irm $url)
+$online | Select-String "ToolVersion = '2.0.0'"
+irm $url | iex
+```
+
+## Nguyên tắc an toàn
+
+- Không chạy release/renew, reset TCP/IP, Winsock hoặc reboot khi đang điều khiển máy từ xa.
+- Không xóa hàng đợi in nếu chưa xác nhận với người dùng.
+- Incident Bundle có thể chứa tên máy, user, IP, domain, Event Log và inventory; phải rà soát trước khi chia sẻ ra ngoài.
+- Tool không thu thập mật khẩu Wi-Fi và không tự tải/chạy phần mềm bên thứ ba.
+- `irm | iex` phụ thuộc an toàn của repository và tài khoản GitHub. Bật MFA, branch protection, giới hạn quyền ghi và cân nhắc ký Authenticode cho môi trường kiểm soát cao.
+- Kiểm thử mọi thay đổi trên máy test hoặc VM trước khi phát hành diện rộng.
+
+## Rollback
+
+Khôi phục từ Git tag ổn định bằng một commit mới, rồi để GitHub Pages triển khai lại. Không cần thay đổi DNS hoặc URL.
+
+```powershell
+git show v1.0.0:Tool_Windows.bat > Tool_Windows.bat
+# Khôi phục các file nguồn tương ứng, chạy lại Build-Release.ps1 rồi commit/push.
+```
+
+Không dùng `git reset --hard` trên thư mục làm việc có dữ liệu chưa lưu.
