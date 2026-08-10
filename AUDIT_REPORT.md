@@ -1,18 +1,18 @@
 # Báo cáo rà soát Syscare Windows Tool
 
-Ngày rà soát: 2026-08-05  
+Ngày rà soát gần nhất: 2026-08-10  
 Phiên bản đầu vào: 1.0.0  
-Phiên bản sau cập nhật: 2.0.0
+Phiên bản sau cập nhật: 2.1.0
 
 ## Kết luận
 
 Bản 1.0.0 có cấu trúc menu rõ, đầy đủ nhóm lệnh Windows cơ bản và đã có xác nhận ở các thao tác dễ gây gián đoạn. Tuy nhiên, công cụ thiên về “hộp lệnh” hơn là quy trình helpdesk theo SLA: kỹ thuật viên phải mở nhiều mục riêng, không có timeline thao tác, thiếu chẩn đoán domain và đầu ra escalation chưa chuẩn hóa.
 
-Bản 2.0.0 giữ nguyên các chức năng cũ, bổ sung lớp chẩn đoán–bằng chứng–ticket để rút ngắn thời gian xác định nguyên nhân và chuyển cấp.
+Bản 2.0.0 giữ nguyên các chức năng cũ, bổ sung lớp chẩn đoán–bằng chứng–ticket để rút ngắn thời gian xác định nguyên nhân và chuyển cấp. Bản 2.1.0 hoàn thiện trải nghiệm tại hiện trường: hướng dẫn nằm ngay trong tool, mọi tác vụ có đích quay lại rõ ràng và màn hình phân trang giải thích phím sử dụng trước khi chạy.
 
 ## Phát hiện và xử lý
 
-| Mức | Phát hiện ở v1.0.0 | Ảnh hưởng | Xử lý trong v2.0.0 |
+| Mức | Phát hiện | Ảnh hưởng | Xử lý đến v2.1.0 |
 |---|---|---|---|
 | Cao | Không có one-click triage | Mất thời gian đi qua nhiều menu, kết quả không đồng nhất | Thêm Quick Triage và kết luận PASS/ATTENTION |
 | Cao | Không có audit/session log | Khó chứng minh thời gian và tác vụ đã thực hiện | Tự ghi log mọi action tại ProgramData |
@@ -23,7 +23,10 @@ Bản 2.0.0 giữ nguyên các chức năng cũ, bổ sung lớp chẩn đoán�
 | Trung bình | Không có test host/port tùy chọn | Khó phân biệt DNS, route và firewall/service | Thêm Connectivity test an toàn bằng tham số PowerShell |
 | Trung bình | Không có gói escalation | Phải gom file thủ công, dễ thiếu dữ liệu | Incident Bundle ZIP, privacy notice và SHA-256 |
 | Trung bình | Quy trình cập nhật thủ công ba file | Dễ để BAT, launcher và index lệch phiên bản | Build-Release tự tạo toàn bộ artifact |
-| Thấp | Không hiển thị phiên bản/session log | Khó xác nhận máy đang chạy release nào | Hiển thị v2.0.0 và đường dẫn log tại menu chính |
+| Thấp | Không hiển thị phiên bản/session log | Khó xác nhận máy đang chạy release nào | Hiển thị phiên bản hiện hành và đường dẫn log tại menu chính |
+| Trung bình | Không có hướng dẫn ngay trong menu | Người dùng mới khó chọn đúng quy trình, tăng thời gian onsite | Thêm mục `[H]` với bắt đầu nhanh, giới thiệu nhóm và gợi ý theo tình huống |
+| Trung bình | `pause` không nói rõ sẽ quay về đâu | Dễ đóng nhầm cửa sổ hoặc tưởng tool đã treo | Thay bằng `B` về nhóm, `M` về menu chính, `0` thoát |
+| Trung bình | `-- More --` không có giải thích | Người dùng không biết `Space`, `Enter` hoặc `Q` | Hiển thị hướng dẫn phân trang trước mọi danh sách dài |
 
 ## Kiểm soát rủi ro được giữ nguyên
 

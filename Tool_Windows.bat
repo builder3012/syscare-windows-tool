@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
 set "TOOL_NAME=SYSCARE WINDOWS TOOL"
-set "TOOL_VERSION=2.0.0"
+set "TOOL_VERSION=2.1.0"
 set "CORE_PS1=%~dp0Syscare.WindowsTool.ps1"
 title %TOOL_NAME% v%TOOL_VERSION% - SLA HELPDESK VA HA TANG
 color 0B
@@ -49,14 +49,16 @@ echo  [7] CHAN DOAN VA QUAN TRI   - Event, Reliability, Services, Registry, DISM
 echo  [8] MAY IN VA TIEN ICH      - Spooler, Store cache, dong bo gio, cong cu he thong
 echo  [9] BAO CAO VA BANG CHUNG    - Bao cao nhanh, goi su co ZIP, health scan
 echo  [A] SLA QUICK TRIAGE         - Chan doan 1 lan chay, AD/GPO, mang, ticket
+echo  [H] HUONG DAN SU DUNG        - Bat dau nhanh, gioi thieu, phim dieu huong
 echo  [0] THOAT
 echo.
 echo  Luu y: Cac muc co anh huong ket noi/khoi dong/xoa du lieu se hoi xac nhan.
 echo ===========================================================================================
 echo  Session log: %SESSION_LOG%
 echo ===========================================================================================
-choice /C 123456789A0 /N /M "Chon nhom chuc nang [0-9, A]: "
-if errorlevel 11 goto exit_tool
+choice /C 123456789AH0 /N /M "Chon nhom chuc nang [0-9, A, H]: "
+if errorlevel 12 goto exit_tool
+if errorlevel 11 goto help_menu
 if errorlevel 10 goto sla_menu
 if errorlevel 9 goto report_menu
 if errorlevel 8 goto utilities_menu
@@ -68,6 +70,94 @@ if errorlevel 3 goto disk_menu
 if errorlevel 2 goto network_menu
 if errorlevel 1 goto repair_menu
 goto main
+
+rem ----------------------------------------------------------------
+rem HUONG DAN SU DUNG VA GIOI THIEU TINH NANG
+rem ----------------------------------------------------------------
+:help_menu
+cls
+echo ===========================================================================================
+echo  [H] HUONG DAN SU DUNG VA GIOI THIEU SYSCARE WINDOWS TOOL
+echo ===========================================================================================
+echo  [1] Bat dau nhanh             - Quy trinh 5 buoc cho nguoi dung moi
+echo  [2] Gioi thieu cac tinh nang  - Noi dung cua tung nhom tren menu chinh
+echo  [3] Phim dieu huong           - B, M, 0 va cach thoat man hinh -- More --
+echo  [4] Goi y theo tinh huong      - Mang, may cham, domain, may in, Windows loi
+echo  [0] Quay lai menu chinh
+echo ===========================================================================================
+choice /C 12340 /N /M "Chon noi dung huong dan [0-4]: "
+if errorlevel 5 goto main
+if errorlevel 4 goto help_scenarios
+if errorlevel 3 goto help_navigation
+if errorlevel 2 goto help_features
+if errorlevel 1 goto help_quick_start
+goto help_menu
+
+:help_quick_start
+cls
+echo ===========================================================================================
+echo  BAT DAU NHANH - QUY TRINH 5 BUOC
+echo ===========================================================================================
+echo  1. Chay tool bang quyen Administrator va doc canh bao truoc khi xac nhan.
+echo  2. Neu chua ro nguyen nhan, chon [A] ^> [1] One-click Quick Triage.
+echo  3. Doc ket qua PASS/ATTENTION va duong dan bao cao tren man hinh.
+echo  4. Sau tac vu: bam [B] ve nhom vua dung, [M] ve menu chinh, [0] thoat.
+echo  5. Neu can escalation, chon [A] ^> [A] de tao Incident Bundle ZIP.
+echo.
+echo  Bao cao: Desktop\Syscare_Support
+echo  Session log: %SESSION_LOG%
+goto nav_help
+
+:help_features
+cls
+echo ===========================================================================================
+echo  GIOI THIEU CAC NHOM TINH NANG
+echo ===========================================================================================
+echo  [1] Sua loi Windows        : SFC, DISM, Component Store va CHKDSK.
+echo  [2] Mang va Internet       : IP, DNS, gateway, Winsock, TCP/IP va Wi-Fi.
+echo  [3] O dia, RAM va nguon    : Suc khoe dia, pin, energy va Memory Diagnostic.
+echo  [4] Khoi dong va phuc hoi  : WinRE, BCD, Restore Point va Advanced Startup.
+echo  [5] Driver va thiet bi     : Driver Store, thiet bi, Verifier va DirectX.
+echo  [6] Bao mat va cap nhat    : Defender, Firewall, hotfix, Update va ban quyen.
+echo  [7] Chan doan va quan tri  : Event, Service, Reliability, Registry va DISM info.
+echo  [8] May in va tien ich     : Spooler, Store, dong bo gio va cong cu he thong.
+echo  [9] Bao cao va bang chung  : Quick report, Health Scan va Incident Bundle.
+echo  [A] SLA Quick Triage      : Chan doan nhanh, AD/GPO, server/port va ticket.
+goto nav_help
+
+:help_navigation
+cls
+echo ===========================================================================================
+echo  PHIM DIEU HUONG VA MAN HINH KET QUA
+echo ===========================================================================================
+echo  Sau khi mot tac vu kiem tra/sua loi ket thuc:
+echo    [B] Quay lai NHOM CHUC NANG vua dung de chon tac vu lien quan.
+echo    [M] Quay lai MENU CHINH de chon mot nhom khac.
+echo    [0] Thoat Syscare Windows Tool.
+echo.
+echo  Khi man hinh hien "-- More --" do danh sach qua dai:
+echo    [SPACE] Xem trang tiep theo.
+echo    [ENTER] Xem them mot dong.
+echo    [Q]     Dung danh sach, sau do chon B, M hoac 0.
+echo.
+echo  Tai menu con, bam [0] de quay lai menu chinh.
+goto nav_help
+
+:help_scenarios
+cls
+echo ===========================================================================================
+echo  GOI Y THAO TAC THEO TINH HUONG
+echo ===========================================================================================
+echo  Chua ro nguyen nhan : [A] ^> [1] Quick Triage
+echo  Mat/chap chon mang  : [2] ^> [2], sau do [A] ^> [2] neu can bao cao sau
+echo  Loi domain/share    : [A] ^> [3], sau do test server/port tai [A] ^> [7]
+echo  May cham/treo       : [A] ^> [4], kiem tra them [3] va Event Viewer [7]
+echo  Khong in duoc       : [A] ^> [5], chi xoa queue tai [8] ^> [3] khi da xac nhan
+echo  Windows bi loi      : [1] ^> [9] Sua loi toan dien; khoi dong lai neu duoc yeu cau
+echo  Can chuyen cap      : [A] ^> [9] ghi ticket, sau do [A] ^> [A] tao ZIP
+echo.
+echo  Khong reset IP/TCP/Winsock khi dang dieu khien may tu xa.
+goto nav_help
 
 rem ----------------------------------------------------------------
 rem NHOM 1 - SUA LOI WINDOWS
@@ -109,8 +199,7 @@ cls
 echo Dang kiem tra tinh toan ven cua tep he thong...
 sfc /verifyonly
 echo.
-pause
-goto repair_menu
+goto nav_repair
 
 :repair_sfc_scan
 call :log_action "repair_sfc_scan"
@@ -118,16 +207,14 @@ cls
 echo Dang quet va sua tep he thong. Khong tat may trong qua trinh nay...
 sfc /scannow
 echo.
-pause
-goto repair_menu
+goto nav_repair
 
 :repair_dism_check
 call :log_action "repair_dism_check"
 cls
 DISM.exe /Online /Cleanup-Image /CheckHealth
 echo.
-pause
-goto repair_menu
+goto nav_repair
 
 :repair_dism_scan
 call :log_action "repair_dism_scan"
@@ -135,8 +222,7 @@ cls
 echo Qua trinh quet co the mat nhieu phut...
 DISM.exe /Online /Cleanup-Image /ScanHealth
 echo.
-pause
-goto repair_menu
+goto nav_repair
 
 :repair_dism_restore
 call :log_action "repair_dism_restore"
@@ -144,8 +230,7 @@ cls
 echo Dang sua Component Store. Lenh co the tai tep tu Windows Update...
 DISM.exe /Online /Cleanup-Image /RestoreHealth
 echo.
-pause
-goto repair_menu
+goto nav_repair
 
 :repair_cleanup
 call :log_action "repair_cleanup"
@@ -153,16 +238,14 @@ cls
 echo Dang don dep cac thanh phan Windows da duoc thay the...
 DISM.exe /Online /Cleanup-Image /StartComponentCleanup
 echo.
-pause
-goto repair_menu
+goto nav_repair
 
 :repair_chkdsk_scan
 call :log_action "repair_chkdsk_scan"
 cls
 chkdsk %SystemDrive% /scan
 echo.
-pause
-goto repair_menu
+goto nav_repair
 
 :repair_chkdsk_fix
 call :log_action "repair_chkdsk_fix"
@@ -174,8 +257,7 @@ choice /C YN /N /M "Tiep tuc? [Y/N]: "
 if errorlevel 2 goto repair_menu
 chkdsk %SystemDrive% /f
 echo.
-pause
-goto repair_menu
+goto nav_repair
 
 :repair_full
 call :log_action "repair_full"
@@ -195,8 +277,7 @@ echo.
 sfc /scannow
 echo.
 echo Da hoan tat chuoi sua loi. Nen khoi dong lai may neu co tep duoc sua.
-pause
-goto repair_menu
+goto nav_repair
 
 :repair_logs
 call :log_action "repair_logs"
@@ -244,8 +325,7 @@ call :log_action "network_ipconfig"
 cls
 ipconfig /all
 echo.
-pause
-goto network_menu
+goto nav_network
 
 :network_test
 call :log_action "network_test"
@@ -262,16 +342,14 @@ echo.
 echo === DUONG DI DEN INTERNET ===
 tracert -d -h 12 1.1.1.1
 echo.
-pause
-goto network_menu
+goto nav_network
 
 :network_flushdns
 call :log_action "network_flushdns"
 cls
 ipconfig /flushdns
 echo.
-pause
-goto network_menu
+goto nav_network
 
 :network_dhcp_renew
 call :log_action "network_dhcp_renew"
@@ -283,8 +361,7 @@ ipconfig /release
 ipconfig /renew
 ipconfig /flushdns
 echo.
-pause
-goto network_menu
+goto nav_network
 
 :network_winsock_reset
 call :log_action "network_winsock_reset"
@@ -294,8 +371,7 @@ choice /C YN /N /M "Tiep tuc? [Y/N]: "
 if errorlevel 2 goto network_menu
 netsh winsock reset
 echo.
-pause
-goto network_menu
+goto nav_network
 
 :network_tcp_reset
 call :log_action "network_tcp_reset"
@@ -307,8 +383,7 @@ if errorlevel 2 goto network_menu
 netsh int ip reset "%TEMP%\ToolWindows_TCPIP_Reset.log"
 echo.
 echo Log: %TEMP%\ToolWindows_TCPIP_Reset.log
-pause
-goto network_menu
+goto nav_network
 
 :network_proxy_reset
 call :log_action "network_proxy_reset"
@@ -320,16 +395,15 @@ choice /C YN /N /M "Reset WinHTTP proxy ve Direct Access? [Y/N]: "
 if errorlevel 2 goto network_menu
 netsh winhttp reset proxy
 echo.
-pause
-goto network_menu
+goto nav_network
 
 :network_dns_cache
 call :log_action "network_dns_cache"
 cls
-ipconfig /displaydns | more
+call :pager_hint
+ipconfig /displaydns | more /E
 echo.
-pause
-goto network_menu
+goto nav_network
 
 :network_wifi_report
 call :log_action "network_wifi_report"
@@ -337,16 +411,14 @@ cls
 netsh wlan show wlanreport
 if exist "%ProgramData%\Microsoft\Windows\WlanReport\wlan-report-latest.html" start "" "%ProgramData%\Microsoft\Windows\WlanReport\wlan-report-latest.html"
 echo.
-pause
-goto network_menu
+goto nav_network
 
 :network_wifi_profiles
 call :log_action "network_wifi_profiles"
 cls
 netsh wlan show profiles
 echo.
-pause
-goto network_menu
+goto nav_network
 
 :network_connections
 call :log_action "network_connections"
@@ -392,16 +464,14 @@ call :log_action "disk_scan"
 cls
 chkdsk %SystemDrive% /scan
 echo.
-pause
-goto disk_menu
+goto nav_disk
 
 :disk_health
 call :log_action "disk_health"
 cls
 powershell.exe -NoProfile -Command "Get-PhysicalDisk | Select-Object FriendlyName,MediaType,HealthStatus,OperationalStatus,Size | Format-Table -AutoSize; Get-Disk | Select-Object Number,FriendlyName,PartitionStyle,HealthStatus,OperationalStatus,Size | Format-Table -AutoSize"
 echo.
-pause
-goto disk_menu
+goto nav_disk
 
 :disk_management
 call :log_action "disk_management"
@@ -429,8 +499,7 @@ cls
 powercfg /batteryreport /output "%DESKTOP%\battery-report.html"
 if exist "%DESKTOP%\battery-report.html" start "" "%DESKTOP%\battery-report.html"
 echo.
-pause
-goto disk_menu
+goto nav_disk
 
 :disk_energy
 call :log_action "disk_energy"
@@ -439,8 +508,7 @@ echo Dang thu thap thong tin trong 60 giay. Hay giu may hoat dong binh thuong...
 powercfg /energy /duration 60 /output "%DESKTOP%\energy-report.html"
 if exist "%DESKTOP%\energy-report.html" start "" "%DESKTOP%\energy-report.html"
 echo.
-pause
-goto disk_menu
+goto nav_disk
 
 :disk_temp
 call :log_action "disk_temp"
@@ -489,32 +557,28 @@ call :log_action "boot_reagent"
 cls
 reagentc /info
 echo.
-pause
-goto boot_menu
+goto nav_boot
 
 :boot_osloader
 call :log_action "boot_osloader"
 cls
 bcdedit /enum osloader
 echo.
-pause
-goto boot_menu
+goto nav_boot
 
 :boot_bcd_all
 call :log_action "boot_bcd_all"
 cls
 bcdedit /enum all /v
 echo.
-pause
-goto boot_menu
+goto nav_boot
 
 :boot_resume
 call :log_action "boot_resume"
 cls
 bcdedit /enum resume
 echo.
-pause
-goto boot_menu
+goto nav_boot
 
 :boot_backup
 call :log_action "boot_backup"
@@ -523,8 +587,7 @@ for /f %%I in ('powershell.exe -NoProfile -Command "Get-Date -Format yyyyMMdd_HH
 bcdedit /export "%DESKTOP%\BCD_Backup_%STAMP%.bcd"
 echo.
 echo Da xuat ban sao BCD ra Desktop neu lenh khong bao loi.
-pause
-goto boot_menu
+goto nav_boot
 
 :boot_restore
 call :log_action "boot_restore"
@@ -587,18 +650,18 @@ goto driver_menu
 :driver_pnputil
 call :log_action "driver_pnputil"
 cls
-pnputil.exe /enum-drivers | more
+call :pager_hint
+pnputil.exe /enum-drivers | more /E
 echo.
-pause
-goto driver_menu
+goto nav_driver
 
 :driver_query
 call :log_action "driver_query"
 cls
-driverquery.exe /v /fo table | more
+call :pager_hint
+driverquery.exe /v /fo table | more /E
 echo.
-pause
-goto driver_menu
+goto nav_driver
 
 :driver_verifier
 call :log_action "driver_verifier"
@@ -609,16 +672,15 @@ echo.
 echo === DRIVER VERIFIER SETTINGS ===
 verifier.exe /querysettings
 echo.
-pause
-goto driver_menu
+goto nav_driver
 
 :driver_devices
 call :log_action "driver_devices"
 cls
-pnputil.exe /enum-devices /connected | more
+call :pager_hint
+pnputil.exe /enum-devices /connected | more /E
 echo.
-pause
-goto driver_menu
+goto nav_driver
 
 :driver_dxdiag
 call :log_action "driver_dxdiag"
@@ -669,16 +731,14 @@ call :log_action "security_status"
 cls
 powershell.exe -NoProfile -Command "Get-MpComputerStatus | Select-Object AMServiceEnabled,AntivirusEnabled,RealTimeProtectionEnabled,BehaviorMonitorEnabled,AntivirusSignatureLastUpdated,QuickScanEndTime,FullScanEndTime | Format-List"
 echo.
-pause
-goto security_menu
+goto nav_security
 
 :security_update_defs
 call :log_action "security_update_defs"
 cls
 powershell.exe -NoProfile -Command "Update-MpSignature"
 echo.
-pause
-goto security_menu
+goto nav_security
 
 :security_quick_scan
 call :log_action "security_quick_scan"
@@ -686,8 +746,7 @@ cls
 echo Dang khoi dong quet nhanh Microsoft Defender...
 powershell.exe -NoProfile -Command "Start-MpScan -ScanType QuickScan"
 echo.
-pause
-goto security_menu
+goto nav_security
 
 :security_full_scan
 call :log_action "security_full_scan"
@@ -697,16 +756,14 @@ choice /C YN /N /M "Bat dau Full Scan? [Y/N]: "
 if errorlevel 2 goto security_menu
 powershell.exe -NoProfile -Command "Start-MpScan -ScanType FullScan"
 echo.
-pause
-goto security_menu
+goto nav_security
 
 :security_firewall
 call :log_action "security_firewall"
 cls
 netsh advfirewall show allprofiles
 echo.
-pause
-goto security_menu
+goto nav_security
 
 :security_ui
 call :log_action "security_ui"
@@ -723,16 +780,14 @@ call :log_action "security_hotfix"
 cls
 powershell.exe -NoProfile -Command "Get-HotFix | Sort-Object InstalledOn -Descending | Format-Table HotFixID,Description,InstalledOn,InstalledBy -AutoSize"
 echo.
-pause
-goto security_menu
+goto nav_security
 
 :security_activation
 call :log_action "security_activation"
 cls
 cscript.exe //nologo "%SystemRoot%\System32\slmgr.vbs" /xpr
 echo.
-pause
-goto security_menu
+goto nav_security
 
 :security_mrt
 call :log_action "security_mrt"
@@ -834,8 +889,7 @@ for /f %%I in ('powershell.exe -NoProfile -Command "Get-Date -Format yyyyMMdd_HH
 reg.exe save HKLM\SYSTEM "%DESKTOP%\SYSTEM_%STAMP%.hiv"
 echo.
 echo Da xuat ban sao Registry SYSTEM ra Desktop neu lenh khong bao loi.
-pause
-goto admin_menu
+goto nav_admin
 
 :admin_registry_compare
 call :log_action "admin_registry_compare"
@@ -843,40 +897,36 @@ cls
 echo Lenh nay chi so sanh va khong thay doi Registry.
 reg.exe compare HKLM\SOFTWARE HKCU\SOFTWARE
 echo.
-pause
-goto admin_menu
+goto nav_admin
 
 :admin_services_list
 call :log_action "admin_services_list"
 cls
-sc.exe query type= service state= all | more
+call :pager_hint
+sc.exe query type= service state= all | more /E
 echo.
-pause
-goto admin_menu
+goto nav_admin
 
 :admin_current_edition
 call :log_action "admin_current_edition"
 cls
 DISM.exe /Online /Get-CurrentEdition
 echo.
-pause
-goto admin_menu
+goto nav_admin
 
 :admin_target_editions
 call :log_action "admin_target_editions"
 cls
 DISM.exe /Online /Get-TargetEditions
 echo.
-pause
-goto admin_menu
+goto nav_admin
 
 :admin_reserved_storage
 call :log_action "admin_reserved_storage"
 cls
 DISM.exe /Online /Get-ReservedStorageState
 echo.
-pause
-goto admin_menu
+goto nav_admin
 
 rem ----------------------------------------------------------------
 rem NHOM 8 - MAY IN VA TIEN ICH
@@ -925,8 +975,7 @@ cls
 net.exe stop spooler
 net.exe start spooler
 echo.
-pause
-goto utilities_menu
+goto nav_utilities
 
 :utility_spooler_clear
 call :log_action "utility_spooler_clear"
@@ -939,8 +988,7 @@ del /F /Q "%SystemRoot%\System32\spool\PRINTERS\*" >nul 2>&1
 net.exe start spooler
 echo.
 echo Da khoi dong lai Spooler va xoa hang doi in.
-pause
-goto utilities_menu
+goto nav_utilities
 
 :utility_troubleshoot
 call :log_action "utility_troubleshoot"
@@ -961,8 +1009,7 @@ echo.
 echo === DONG BO LAI VOI NGUON THOI GIAN DA CAU HINH ===
 w32tm.exe /resync /rediscover
 echo.
-pause
-goto utilities_menu
+goto nav_utilities
 
 :utility_internet_options
 call :log_action "utility_internet_options"
@@ -1030,43 +1077,35 @@ goto sla_menu
 
 :sla_quick_triage
 call :run_core QuickTriage
-pause
-goto sla_menu
+goto nav_sla
 
 :sla_network
 call :run_core Network
-pause
-goto sla_menu
+goto nav_sla
 
 :sla_domain
 call :run_core Domain
-pause
-goto sla_menu
+goto nav_sla
 
 :sla_performance
 call :run_core Performance
-pause
-goto sla_menu
+goto nav_sla
 
 :sla_printer
 call :run_core Printer
-pause
-goto sla_menu
+goto nav_sla
 
 :sla_windows_update
 call :run_core WindowsUpdate
-pause
-goto sla_menu
+goto nav_sla
 
 :sla_connectivity
 call :run_core Connectivity
-pause
-goto sla_menu
+goto nav_sla
 
 :sla_case_note
 call :run_core CaseNote
-pause
-goto sla_menu
+goto nav_sla
 
 :sla_incident_bundle
 cls
@@ -1076,8 +1115,7 @@ echo Qua trinh thuong mat 2-5 phut va khong tu dong sua he thong.
 choice /C YN /N /M "Tao goi su co ZIP? [Y/N]: "
 if errorlevel 2 goto sla_menu
 call :run_core IncidentBundle
-pause
-goto sla_menu
+goto nav_sla
 
 :sla_fix_menu
 cls
@@ -1106,22 +1144,19 @@ goto sla_fix_menu
 call :log_action "sla_fix_dns"
 ipconfig.exe /flushdns
 call :log_result "sla_fix_dns" "%errorlevel%"
-pause
-goto sla_fix_menu
+goto nav_sla_fix
 
 :sla_fix_time
 call :log_action "sla_fix_time"
 w32tm.exe /resync /rediscover
 call :log_result "sla_fix_time" "%errorlevel%"
-pause
-goto sla_fix_menu
+goto nav_sla_fix
 
 :sla_fix_gpupdate
 call :log_action "sla_fix_gpupdate_user"
 gpupdate.exe /target:user /force
 call :log_result "sla_fix_gpupdate_user" "%errorlevel%"
-pause
-goto sla_fix_menu
+goto nav_sla_fix
 
 :sla_fix_spooler
 echo CANH BAO: Spooler se tam dung; lenh in dang xu ly co the bi anh huong.
@@ -1131,16 +1166,14 @@ call :log_action "sla_fix_spooler"
 net.exe stop spooler
 net.exe start spooler
 call :log_result "sla_fix_spooler" "%errorlevel%"
-pause
-goto sla_fix_menu
+goto nav_sla_fix
 
 :sla_fix_update_services
 call :log_action "sla_fix_update_services"
 sc.exe start bits
 sc.exe start wuauserv
 call :log_result "sla_fix_update_services" "%errorlevel%"
-pause
-goto sla_fix_menu
+goto nav_sla_fix
 
 :sla_fix_explorer
 echo Taskbar va Desktop se bien mat trong vai giay.
@@ -1150,8 +1183,7 @@ call :log_action "sla_fix_explorer"
 taskkill.exe /F /IM explorer.exe
 start "" explorer.exe
 call :log_result "sla_fix_explorer" "%errorlevel%"
-pause
-goto sla_fix_menu
+goto nav_sla_fix
 
 rem ----------------------------------------------------------------
 rem NHOM 9 - BAO CAO VA BANG CHUNG
@@ -1179,8 +1211,7 @@ goto report_menu
 
 :report_quick_triage
 call :run_core QuickTriage
-pause
-goto report_menu
+goto nav_report
 
 :report_incident_bundle
 cls
@@ -1188,8 +1219,7 @@ echo Bao cao co the chua du lieu noi bo. Phai ra soat truoc khi chia se ra ngoai
 choice /C YN /N /M "Tao goi su co ZIP? [Y/N]: "
 if errorlevel 2 goto report_menu
 call :run_core IncidentBundle
-pause
-goto report_menu
+goto nav_report
 
 :report_health_scan
 cls
@@ -1197,8 +1227,7 @@ echo Health Scan chi kiem tra, khong tu dong sua. SFC VerifyOnly co the mat nhie
 choice /C YN /N /M "Bat dau DISM CheckHealth va SFC VerifyOnly? [Y/N]: "
 if errorlevel 2 goto report_menu
 call :run_core HealthScan
-pause
-goto report_menu
+goto nav_report
 
 :report_open_folder
 if not exist "%DESKTOP%\Syscare_Support" md "%DESKTOP%\Syscare_Support" >nul 2>&1
@@ -1210,8 +1239,102 @@ if exist "%SESSION_LOG%" start "" notepad.exe "%SESSION_LOG%"
 goto report_menu
 
 rem ----------------------------------------------------------------
-rem SUBROUTINES - CORE VA AUDIT LOG
+rem DIEU HUONG THONG NHAT SAU MOI TAC VU
 rem ----------------------------------------------------------------
+:nav_help
+call :completion_prompt "HUONG DAN SU DUNG"
+if errorlevel 3 goto exit_tool
+if errorlevel 2 goto main
+goto help_menu
+
+:nav_repair
+call :completion_prompt "SUA LOI WINDOWS"
+if errorlevel 3 goto exit_tool
+if errorlevel 2 goto main
+goto repair_menu
+
+:nav_network
+call :completion_prompt "MANG VA INTERNET"
+if errorlevel 3 goto exit_tool
+if errorlevel 2 goto main
+goto network_menu
+
+:nav_disk
+call :completion_prompt "O DIA, RAM VA NGUON"
+if errorlevel 3 goto exit_tool
+if errorlevel 2 goto main
+goto disk_menu
+
+:nav_boot
+call :completion_prompt "KHOI DONG VA PHUC HOI"
+if errorlevel 3 goto exit_tool
+if errorlevel 2 goto main
+goto boot_menu
+
+:nav_driver
+call :completion_prompt "DRIVER VA THIET BI"
+if errorlevel 3 goto exit_tool
+if errorlevel 2 goto main
+goto driver_menu
+
+:nav_security
+call :completion_prompt "BAO MAT VA CAP NHAT"
+if errorlevel 3 goto exit_tool
+if errorlevel 2 goto main
+goto security_menu
+
+:nav_admin
+call :completion_prompt "CHAN DOAN VA QUAN TRI"
+if errorlevel 3 goto exit_tool
+if errorlevel 2 goto main
+goto admin_menu
+
+:nav_utilities
+call :completion_prompt "MAY IN VA TIEN ICH"
+if errorlevel 3 goto exit_tool
+if errorlevel 2 goto main
+goto utilities_menu
+
+:nav_sla
+call :completion_prompt "SLA QUICK TRIAGE"
+if errorlevel 3 goto exit_tool
+if errorlevel 2 goto main
+goto sla_menu
+
+:nav_sla_fix
+call :completion_prompt "SUA NHANH TAI CHO"
+if errorlevel 3 goto exit_tool
+if errorlevel 2 goto main
+goto sla_fix_menu
+
+:nav_report
+call :completion_prompt "BAO CAO VA BANG CHUNG"
+if errorlevel 3 goto exit_tool
+if errorlevel 2 goto main
+goto report_menu
+
+rem ----------------------------------------------------------------
+rem SUBROUTINES - UX, CORE VA AUDIT LOG
+rem ----------------------------------------------------------------
+:completion_prompt
+echo.
+echo ===========================================================================================
+echo  TAC VU DA KET THUC - %~1
+echo  [B] Quay lai nhom vua dung    [M] Quay lai MENU CHINH    [0] THOAT TOOL
+echo ===========================================================================================
+choice /C BM0 /N /M "Chon B, M hoac 0: "
+if errorlevel 3 exit /b 3
+if errorlevel 2 exit /b 2
+exit /b 1
+
+:pager_hint
+echo ===========================================================================================
+echo  DANH SACH DAI: [SPACE] trang tiep  [ENTER] dong tiep  [Q] dung danh sach
+echo  Sau khi dung/ket thuc: [B] ve nhom, [M] menu chinh, [0] thoat.
+echo ===========================================================================================
+echo.
+exit /b 0
+
 :run_core
 set "CORE_ACTION=%~1"
 call :log_action "CORE_START %CORE_ACTION%"

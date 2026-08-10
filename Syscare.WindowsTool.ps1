@@ -12,7 +12,7 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-$Script:ToolVersion = '2.0.0'
+$Script:ToolVersion = '2.1.0'
 
 function Write-SessionLog {
     param([string] $Message, [string] $Level = 'INFO')

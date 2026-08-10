@@ -1,4 +1,4 @@
-# Syscare Windows Tool v2.0.0
+# Syscare Windows Tool v2.1.0
 
 Bộ công cụ hỗ trợ IT helpdesk và hạ tầng tại chỗ trên Windows 10/11, tối ưu cho thao tác nhanh, lưu bằng chứng xử lý và đáp ứng SLA. Menu chính vẫn chạy bằng BAT; các báo cáo chuyên sâu được thực hiện bởi mô-đun PowerShell đi kèm.
 
@@ -8,7 +8,15 @@ Lệnh sử dụng chính thức:
 irm https://win.syscare.site | iex
 ```
 
-## Điểm mới của v2.0.0
+## Điểm mới của v2.1.0
+
+- Thêm `[H] Hướng dẫn sử dụng` ngay tại menu chính.
+- Có hướng dẫn bắt đầu nhanh, giới thiệu 10 nhóm tính năng và gợi ý theo tình huống helpdesk.
+- Sau mỗi tác vụ hiển thị rõ: `B` về nhóm vừa dùng, `M` về menu chính, `0` thoát.
+- Trước danh sách dài hiển thị: `Space` sang trang, `Enter` sang dòng, `Q` dừng danh sách.
+- Loại bỏ thông báo `Press any key to continue...` không rõ đích quay lại ở các tác vụ chính.
+
+## Nền tảng chẩn đoán từ v2.0.0
 
 - One-click Quick Triage: hệ thống, ổ đĩa, RAM, mạng, DNS, gateway, Internet, AD, GPO, Kerberos, time, máy in, Defender, Update và Event Log.
 - Kết luận nhanh `PASS` hoặc `ATTENTION`, có TXT, JSON và HTML.
@@ -55,9 +63,16 @@ irm https://win.syscare.site | iex
    irm https://win.syscare.site | iex
    ```
 
-5. Chấp nhận UAC, sau đó ưu tiên `[A] SLA QUICK TRIAGE`.
+5. Chấp nhận UAC; người dùng mới có thể chọn `[H]` để xem hướng dẫn ngay trong tool.
 6. Với sự cố chưa rõ nguyên nhân, chạy `[A] → [1] One-click Quick Triage` trước khi sửa.
-7. Với sự cố phải chuyển cấp, chạy `[A] → [A]` hoặc `[9] → [2]` để tạo Incident Bundle ZIP.
+7. Khi tác vụ kết thúc, chọn `B` để về nhóm vừa dùng, `M` để về menu chính hoặc `0` để thoát.
+8. Với sự cố phải chuyển cấp, chạy `[A] → [A]` hoặc `[9] → [2]` để tạo Incident Bundle ZIP.
+
+Khi danh sách dài dừng tại `-- More --`:
+
+- Nhấn `Space` để xem trang tiếp theo.
+- Nhấn `Enter` để xem thêm một dòng.
+- Nhấn `Q` để dừng danh sách và chuyển tới màn hình điều hướng.
 
 Đầu ra được lưu tại:
 
@@ -135,10 +150,10 @@ Kết quả so sánh phải là `True`. Sau đó chạy BAT trực tiếp trên 
 ```powershell
 git status
 git add .
-git commit -m "Release v2.0.0 - SLA quick triage and incident bundle"
+git commit -m "Release v2.1.0 - Add in-tool guide and navigation"
 git push origin main
-git tag -a v2.0.0 -m "Syscare Windows Tool v2.0.0"
-git push origin v2.0.0
+git tag -a v2.1.0 -m "Syscare Windows Tool v2.1.0"
+git push origin v2.1.0
 ```
 
 Chờ workflow **pages build and deployment** thành công. Không sửa DNS, CNAME hoặc custom domain khi chỉ cập nhật tính năng.
@@ -146,9 +161,9 @@ Chờ workflow **pages build and deployment** thành công. Không sửa DNS, CN
 ### 5. Kiểm tra bản online
 
 ```powershell
-$url = 'https://win.syscare.site/?v=2.0.0'
+$url = 'https://win.syscare.site/?v=2.1.0'
 $online = [string](irm $url)
-$online | Select-String "ToolVersion = '2.0.0'"
+$online | Select-String "ToolVersion = '2.1.0'"
 irm $url | iex
 ```
 

@@ -1,14 +1,19 @@
-# Báo cáo kiểm thử bản phát hành 2.0.0
+# Báo cáo kiểm thử bản phát hành 2.1.0
 
-Ngày kiểm thử: 2026-08-05
+Ngày kiểm thử: 2026-08-10
 
 ## Kết quả tự động
 
 | Kiểm tra | Kết quả |
 |---|---|
-| Nhãn BAT | 120 nhãn, không trùng |
-| Tham chiếu `goto`/`call` | 113 tham chiếu, không thiếu đích |
-| Menu `choice` | 27 menu, ký tự lựa chọn không trùng, `errorlevel` ánh xạ giảm dần đúng |
+| Nhãn BAT | 139 nhãn, không trùng |
+| Tham chiếu `goto`/`call` | 435 tham chiếu, không thiếu đích |
+| Menu `choice` | 29 menu, ký tự lựa chọn không trùng, `errorlevel` ánh xạ giảm dần đúng |
+| Mục hướng dẫn `[H]` | Có đủ bắt đầu nhanh, giới thiệu tính năng, điều hướng và tình huống |
+| Điểm kết thúc tác vụ | 70 luồng chuyển qua màn hình điều hướng thống nhất |
+| `pause` sau tác vụ | Đã loại bỏ; chỉ còn một `pause` tại cảnh báo thiếu quyền Administrator |
+| Danh sách `more` | 5/5 lệnh có hướng dẫn `Space`, `Enter`, `Q` trước khi chạy |
+| Phiên bản BAT/Core | Đồng bộ `2.1.0` |
 | Payload BAT trong launcher | Trùng byte với `Tool_Windows.bat` |
 | Payload Core trong launcher | Trùng byte với `Syscare.WindowsTool.ps1` |
 | SHA-256 payload | Cả hai khớp giá trị mong đợi trong launcher |
@@ -39,3 +44,6 @@ Môi trường build không phải Windows nên chưa thể thực thi thật c�
 5. Chạy `Build-Release.ps1`, xác nhận launcher/index giống nhau.
 6. Đẩy lên branch thử nghiệm hoặc tag pre-release, kiểm tra URL có query chống cache.
 7. Chỉ merge/push `main` sau khi tất cả mục trên đạt.
+8. Tại ít nhất một tác vụ trong mỗi nhóm, xác nhận `B` về đúng nhóm, `M` về menu chính và `0` thoát.
+9. Kiểm tra một danh sách driver/service dài: `Space`, `Enter`, `Q` hoạt động và sau đó hiện lựa chọn điều hướng.
+10. Mở `[H]` và kiểm tra cả bốn trang hướng dẫn trên độ phân giải cửa sổ mặc định.

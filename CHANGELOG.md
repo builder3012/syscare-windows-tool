@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.1.0 - 2026-08-10
+
+### Added
+
+- Mục `[H] Hướng dẫn sử dụng` trên menu chính, gồm bắt đầu nhanh, giới thiệu tính năng, phím điều hướng và gợi ý theo tình huống.
+- Lời nhắc riêng cho danh sách dài: `Space` xem trang tiếp, `Enter` xem dòng tiếp, `Q` dừng danh sách.
+- Điều hướng thống nhất sau tác vụ: `B` về nhóm vừa dùng, `M` về menu chính, `0` thoát tool.
+
+### Changed
+
+- Thay toàn bộ `pause` sau tác vụ bằng màn hình kết thúc có lựa chọn rõ ràng.
+- Chuẩn hóa luồng quay lại cho các nhóm sửa Windows, mạng, ổ đĩa, boot, driver, bảo mật, quản trị, tiện ích, SLA và báo cáo.
+- Các lệnh `more` dùng chế độ mở rộng và hiển thị hướng dẫn trước khi phân trang.
+
 ## 2.0.0 - 2026-08-05
 
 ### Added
