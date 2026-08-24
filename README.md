@@ -91,6 +91,7 @@ Nhật ký thao tác được lưu tại:
 | Tình huống | Thao tác đầu tiên | Tác vụ tiếp theo |
 |---|---|---|
 | Máy chậm/treo | Quick Triage | Performance; kiểm tra top CPU/RAM, dung lượng và Event Log |
+| Thiếu/Lỗi Driver Laptop/PC | Driver & Thiết bị `[5.8]` | Nhận diện Hãng/Model/Serial, cài driver qua Windows Update WHQL hoặc nạp INF local |
 | Không vào mạng | Network | Test gateway, DNS, Internet 443; chỉ reset sau khi xác nhận không điều khiển từ xa |
 | Không vào domain/share | Domain/AD/GPO | Secure channel, DC discovery, Kerberos, time; test port 53/88/389/445 tùy hệ thống |
 | Không in được | Printer | Xem queue/port/Spooler; chỉ xóa queue sau xác nhận |

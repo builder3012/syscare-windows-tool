@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.2.0 - 2026-08-24
+
+### Added
+
+- Tính năng **Tự động nhận diện thông tin máy tính/Laptop & Cài đặt Driver** thuộc menu `[5.8]`:
+  - Tự động nhận diện Hãng sản xuất (Dell, HP, Lenovo, ASUS, Acer, MSI, Surface,...), Model, Serial/Service Tag, phiên bản BIOS & HĐH.
+  - Phát hiện danh sách thiết bị chưa nhận driver hoặc bị lỗi Code 28 (Yellow Exclamation Mark / Unknown Device).
+  - Tích hợp Windows Update Driver Engine (WHQL): Tự động tìm kiếm, tải về và nạp driver chính hãng chuẩn từ Microsoft Update Catalog.
+  - Trích xuất tự động link hỗ trợ driver chính hãng theo Service Tag/Serial Number của thiết bị.
+  - Hỗ trợ nạp Driver offline từ thư mục local hoặc USB chứa file `.inf` bằng `pnputil`.
+  - Hỗ trợ lối tắt tải nhanh Driver Card đồ họa (NVIDIA, AMD, Intel) và Card mạng/Bluetooth (Intel, Realtek).
+
 ## 2.1.0 - 2026-08-10
 
 ### Added

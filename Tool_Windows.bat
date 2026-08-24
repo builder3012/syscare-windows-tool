@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
 set "TOOL_NAME=SYSCARE WINDOWS TOOL"
-set "TOOL_VERSION=2.1.0"
+set "TOOL_VERSION=2.2.0"
 set "CORE_PS1=%~dp0Syscare.WindowsTool.ps1"
 title %TOOL_NAME% v%TOOL_VERSION% - SLA HELPDESK VA HA TANG
 color 0B
@@ -629,10 +629,12 @@ echo  [4] Xem trang thai Driver Verifier        - KHONG tu dong bat Verifier
 echo  [5] Liet ke thiet bi dang ket noi          - pnputil /enum-devices /connected
 echo  [6] Mo DirectX Diagnostic Tool             - dxdiag
 echo  [7] Mo System Information                  - msinfo32
+echo  [8] Tu dong nhan dien & Cai dat Driver     - Choice option cho Laptop / PC
 echo  [0] Quay lai menu chinh
 echo ===========================================================================================
-choice /C 12345670 /N /M "Chon chuc nang: "
-if errorlevel 8 goto main
+choice /C 123456780 /N /M "Chon chuc nang: "
+if errorlevel 9 goto main
+if errorlevel 8 goto laptop_driver_menu
 if errorlevel 7 goto driver_msinfo
 if errorlevel 6 goto driver_dxdiag
 if errorlevel 5 goto driver_devices
@@ -691,6 +693,92 @@ goto driver_menu
 call :log_action "driver_msinfo"
 start "" msinfo32.exe
 goto driver_menu
+
+:laptop_driver_menu
+cls
+echo ===========================================================================================
+echo  [5.8] TU DONG NHAN DIEN & CAI DAT DRIVER CHO LAPTOP / PC
+echo ===========================================================================================
+echo  [1] Nhan dien phan cung & Liet ke thiet bi thieu Driver (Code 28)
+echo  [2] Tu dong quet & Cai dat Driver con thieu qua Windows Update (WHQL)
+echo  [3] Quet va Cap nhat toan bo Driver he thong qua Windows Update
+echo  [4] Mo trang ho tro Driver chinh hang theo Service Tag / Serial Number
+echo  [5] Cai dat Driver tu thu muc / USB local (.inf)
+echo  [6] Mo trang tai Driver Card do hoa (NVIDIA, AMD, Intel)
+echo  [7] Mo trang tai Driver Card mang & Bluetooth (Intel, Realtek)
+echo  [0] Quay lai menu Driver
+echo ===========================================================================================
+choice /C 12345670 /N /M "Chon chuc nang: "
+if errorlevel 8 goto driver_menu
+if errorlevel 7 goto laptop_driver_network_page
+if errorlevel 6 goto laptop_driver_gpu_page
+if errorlevel 5 goto laptop_driver_local_inf
+if errorlevel 4 goto laptop_driver_oem
+if errorlevel 3 goto laptop_driver_wu_all
+if errorlevel 2 goto laptop_driver_wu_missing
+if errorlevel 1 goto laptop_driver_info
+goto laptop_driver_menu
+
+:laptop_driver_info
+call :log_action "laptop_driver_info"
+cls
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%CORE_PS1%" -Action DriverInstaller -DriverMode Info -SessionLog "%SESSION_LOG%"
+echo.
+goto nav_driver
+
+:laptop_driver_wu_missing
+call :log_action "laptop_driver_wu_missing"
+cls
+echo ===========================================================================================
+echo  TU DONG QUET VA CAI DAT DRIVER CON THIEU (WHQL VIA WINDOWS UPDATE)
+echo ===========================================================================================
+echo  Luu y: Qua trinh tai va cai dat driver can co ket noi Internet.
+echo.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%CORE_PS1%" -Action DriverInstaller -DriverMode WUInstallMissing -SessionLog "%SESSION_LOG%"
+echo.
+goto nav_driver
+
+:laptop_driver_wu_all
+call :log_action "laptop_driver_wu_all"
+cls
+echo ===========================================================================================
+echo  QUET VA CAP NHAT TOAN BO DRIVER HE THONG (WHQL VIA WINDOWS UPDATE)
+echo ===========================================================================================
+echo  Luu y: Qua trinh tai va cai dat driver can co ket noi Internet.
+echo.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%CORE_PS1%" -Action DriverInstaller -DriverMode WUInstallAll -SessionLog "%SESSION_LOG%"
+echo.
+goto nav_driver
+
+:laptop_driver_oem
+call :log_action "laptop_driver_oem"
+cls
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%CORE_PS1%" -Action DriverInstaller -DriverMode OEMLink -SessionLog "%SESSION_LOG%"
+echo.
+goto nav_driver
+
+:laptop_driver_local_inf
+call :log_action "laptop_driver_local_inf"
+cls
+echo ===========================================================================================
+echo  CAI DAT DRIVER OFFLINE TU THU MUC LOCAL / USB (.INF)
+echo ===========================================================================================
+set "DRV_DIR="
+set /p "DRV_DIR=Nhap duong dan den thu muc chua file .inf (vi du: D:\Drivers hoac E:\INF): "
+if not defined DRV_DIR goto laptop_driver_menu
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%CORE_PS1%" -Action DriverInstaller -DriverMode LocalINF -DriverFolder "%DRV_DIR%" -SessionLog "%SESSION_LOG%"
+echo.
+goto nav_driver
+
+:laptop_driver_gpu_page
+call :log_action "laptop_driver_gpu_page"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%CORE_PS1%" -Action DriverInstaller -DriverMode GPUPage -SessionLog "%SESSION_LOG%"
+goto laptop_driver_menu
+
+:laptop_driver_network_page
+call :log_action "laptop_driver_network_page"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%CORE_PS1%" -Action DriverInstaller -DriverMode NetworkPage -SessionLog "%SESSION_LOG%"
+goto laptop_driver_menu
 
 rem ----------------------------------------------------------------
 rem NHOM 6 - BAO MAT VA CAP NHAT

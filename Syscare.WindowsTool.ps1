@@ -2,8 +2,13 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('QuickTriage', 'Network', 'Domain', 'Performance', 'Printer', 'WindowsUpdate', 'Connectivity', 'CaseNote', 'IncidentBundle', 'HealthScan')]
+    [ValidateSet('QuickTriage', 'Network', 'Domain', 'Performance', 'Printer', 'WindowsUpdate', 'Connectivity', 'CaseNote', 'IncidentBundle', 'HealthScan', 'DriverInstaller')]
     [string] $Action,
+
+    [ValidateSet('Info', 'WUInstallMissing', 'WUInstallAll', 'OEMLink', 'LocalINF', 'GPUPage', 'NetworkPage')]
+    [string] $DriverMode = 'Info',
+
+    [string] $DriverFolder,
 
     [string] $OutputRoot = (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Syscare_Support'),
     [string] $SessionLog
@@ -12,7 +17,7 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-$Script:ToolVersion = '2.1.0'
+$Script:ToolVersion = '2.2.0'
 
 function Write-SessionLog {
     param([string] $Message, [string] $Level = 'INFO')
@@ -424,6 +429,239 @@ function Invoke-HealthScan {
     Complete-Output -Directory $directory
 }
 
+function Get-LaptopHardwareProfile {
+    $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue
+    $bios = Get-CimInstance Win32_BIOS -ErrorAction SilentlyContinue
+    $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+
+    $manufacturer = if ($cs.Manufacturer) { $cs.Manufacturer.Trim() } else { 'Unknown' }
+    $model = if ($cs.Model) { $cs.Model.Trim() } else { 'Unknown' }
+    $serial = if ($bios.SerialNumber) { $bios.SerialNumber.Trim() } else { 'Unknown' }
+    $biosVersion = if ($bios.SMBIOSBIOSVersion) { $bios.SMBIOSBIOSVersion.Trim() } else { 'Unknown' }
+    $osName = if ($os.Caption) { $os.Caption.Trim() } else { 'Windows' }
+    $osArch = if ($os.OSArchitecture) { $os.OSArchitecture.Trim() } else { 'x64' }
+
+    $chassis = Get-CimInstance Win32_SystemEnclosure -ErrorAction SilentlyContinue
+    $chassisTypes = @($chassis.ChassisTypes)
+    $isLaptop = $chassisTypes | Where-Object { $_ -in @(8, 9, 10, 11, 12, 14, 30, 31, 32) }
+
+    $oemName = 'Unknown'
+    $supportUrl = ''
+    if ($manufacturer -like '*Dell*') {
+        $oemName = 'Dell'
+        if ($serial -and $serial -ne 'Unknown') {
+            $supportUrl = "https://www.dell.com/support/home/vi-vn/product-support/servicetag/$serial/drivers"
+        } else {
+            $supportUrl = "https://www.dell.com/support/home/vi-vn?app=drivers"
+        }
+    }
+    elseif ($manufacturer -like '*HP*' -or $manufacturer -like '*Hewlett-Packard*') {
+        $oemName = 'HP'
+        $supportUrl = "https://support.hp.com/vn-vi/drivers"
+    }
+    elseif ($manufacturer -like '*Lenovo*') {
+        $oemName = 'Lenovo'
+        if ($serial -and $serial -ne 'Unknown') {
+            $supportUrl = "https://pcsupport.lenovo.com/vn/en/productssearch?q=$serial"
+        } else {
+            $supportUrl = "https://pcsupport.lenovo.com/vn/en/"
+        }
+    }
+    elseif ($manufacturer -like '*ASUSTeK*' -or $manufacturer -like '*ASUS*') {
+        $oemName = 'ASUS'
+        $supportUrl = "https://www.asus.com/support/Download-Center/"
+    }
+    elseif ($manufacturer -like '*Acer*') {
+        $oemName = 'Acer'
+        if ($serial -and $serial -ne 'Unknown') {
+            $supportUrl = "https://www.acer.com/ac/vi/VN/content/support-product/$serial"
+        } else {
+            $supportUrl = "https://www.acer.com/ac/vi/VN/content/drivers"
+        }
+    }
+    elseif ($manufacturer -like '*MSI*' -or $manufacturer -like '*Micro-Star*') {
+        $oemName = 'MSI'
+        $supportUrl = "https://www.msi.com/support/download"
+    }
+    elseif ($manufacturer -like '*Gigabyte*') {
+        $oemName = 'Gigabyte'
+        $supportUrl = "https://www.gigabyte.com/Support"
+    }
+    elseif ($manufacturer -like '*Microsoft*') {
+        $oemName = 'Microsoft Surface'
+        $supportUrl = "https://support.microsoft.com/en-us/surface/download-drivers-and-firmware-for-surface-09bb2e09-2a4b-cb69-0951-078a7739e120"
+    }
+
+    $problemDevices = Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue | Where-Object { $_.Status -ne 'OK' }
+
+    return [pscustomobject]@{
+        Manufacturer   = $manufacturer
+        Model          = $model
+        Serial         = $serial
+        BIOSVersion    = $biosVersion
+        OS             = "$osName $osArch"
+        IsLaptop       = [bool]$isLaptop
+        OEMName        = $oemName
+        SupportUrl     = $supportUrl
+        ProblemDevices = $problemDevices
+    }
+}
+
+function Show-LaptopHardwareProfile {
+    $profile = Get-LaptopHardwareProfile
+    Write-Host "===========================================================================================" -ForegroundColor Cyan
+    Write-Host "                THONG TIN PHAN CUNG MAY TINH & TRANG THAI DRIVER" -ForegroundColor Cyan
+    Write-Host "===========================================================================================" -ForegroundColor Cyan
+    Write-Host ("  Hang san xuat   : {0} ({1})" -f $profile.Manufacturer, $profile.OEMName) -ForegroundColor Yellow
+    Write-Host ("  Model thiet bi  : {0}" -f $profile.Model) -ForegroundColor Yellow
+    Write-Host ("  Serial / Tag    : {0}" -f $profile.Serial) -ForegroundColor Green
+    Write-Host ("  Phien ban BIOS  : {0}" -f $profile.BIOSVersion)
+    Write-Host ("  He dieu hanh    : {0}" -f $profile.OS)
+    $devType = if ($profile.IsLaptop) { 'Laptop / Portable' } else { 'Desktop / PC' }
+    Write-Host ("  Loai thiet bi   : {0}" -f $devType)
+    if ($profile.SupportUrl) {
+        Write-Host ("  Link ho tro OEM : {0}" -f $profile.SupportUrl) -ForegroundColor Cyan
+    }
+    Write-Host "-------------------------------------------------------------------------------------------"
+    if ($profile.ProblemDevices -and $profile.ProblemDevices.Count -gt 0) {
+        Write-Host ("  PHAT HIEN {0} THIET BI CHUA NHAN DRIVER HOAC CO LOI (Code 28 / Missing):" -f $profile.ProblemDevices.Count) -ForegroundColor Red
+        foreach ($dev in $profile.ProblemDevices) {
+            Write-Host ("   - [{0}] {1} (Status: {2}, Class: {3})" -f $dev.InstanceId, $dev.FriendlyName, $dev.Status, $dev.PNPClass) -ForegroundColor Red
+        }
+    } else {
+        Write-Host "  TRANG THAI DRIVER: Tat ca thiet bi dang hoat dong binh thuong (No missing drivers)." -ForegroundColor Green
+    }
+    Write-Host "==========================================================================================="
+}
+
+function Invoke-WindowsUpdateDriverInstall {
+    param([bool] $OnlyMissing = $true)
+    Write-Host "===========================================================================================" -ForegroundColor Cyan
+    Write-Host "       TU DONG QUET VA CAI DAT DRIVER QUA WINDOWS UPDATE AGENT (WHQL)" -ForegroundColor Cyan
+    Write-Host "===========================================================================================" -ForegroundColor Cyan
+    Write-SessionLog ("Starting Windows Update Driver Install (OnlyMissing={0})" -f $OnlyMissing)
+
+    try {
+        $service = Get-Service -Name wuauserv -ErrorAction SilentlyContinue
+        if ($service -and $service.Status -ne 'Running') {
+            Write-Host " Dang khoi chay service Windows Update (wuauserv)..." -ForegroundColor Yellow
+            Start-Service -Name wuauserv -ErrorAction SilentlyContinue
+        }
+
+        Write-Host " Dang ket noi den Microsoft Update Catalog de tim Driver phu hop..." -ForegroundColor Yellow
+        $updateSession = New-Object -ComObject Microsoft.Update.Session
+        $updateSearcher = $updateSession.CreateUpdateSearcher()
+        $updateSearcher.ServerSelection = 2
+
+        $criteria = "IsInstalled=0 and Type='Driver'"
+        Write-Host " Running search query: $criteria"
+        $searchResult = $updateSearcher.Search($criteria)
+
+        if ($searchResult.Updates.Count -eq 0) {
+            Write-Host " KHONG TIM THAY DRIVER MOI NUA TREN WINDOWS UPDATE CATALOG." -ForegroundColor Green
+            Write-Host " He thong cua ban da duoc cai dat driver day du." -ForegroundColor Green
+            return
+        }
+
+        Write-Host (" Tim thay {0} driver kha dung tren Windows Update:" -f $searchResult.Updates.Count) -ForegroundColor Yellow
+        $updatesToDownload = New-Object -ComObject Microsoft.Update.UpdateColl
+        for ($i = 0; $i -lt $searchResult.Updates.Count; $i++) {
+            $u = $searchResult.Updates.Item($i)
+            Write-Host ("  [{0}] {1}" -f ($i + 1), $u.Title) -ForegroundColor Cyan
+            $updatesToDownload.Add($u) | Out-Null
+        }
+
+        Write-Host "`n Dang tai cac Driver ve he thong..." -ForegroundColor Yellow
+        $downloader = $updateSession.CreateUpdateDownloader()
+        $downloader.Updates = $updatesToDownload
+        $downloadResult = $downloader.Download()
+
+        if ($downloadResult.ResultCode -ne 2) {
+            Write-Host (" Co loi hoac tai chua xong driver (ResultCode: {0})." -f $downloadResult.ResultCode) -ForegroundColor Red
+        } else {
+            Write-Host " Tai thanh cong tat ca driver! Dang tien hanh cai dat..." -ForegroundColor Green
+        }
+
+        $updatesToInstall = New-Object -ComObject Microsoft.Update.UpdateColl
+        for ($i = 0; $i -lt $searchResult.Updates.Count; $i++) {
+            $u = $searchResult.Updates.Item($i)
+            if ($u.IsDownloaded) {
+                $updatesToInstall.Add($u) | Out-Null
+            }
+        }
+
+        if ($updatesToInstall.Count -gt 0) {
+            $installer = $updateSession.CreateUpdateInstaller()
+            $installer.Updates = $updatesToInstall
+            Write-Host " Dang thuc thi cai dat Driver..." -ForegroundColor Yellow
+            $installResult = $installer.Install()
+
+            if ($installResult.ResultCode -eq 2) {
+                Write-Host " CAI DAT PHIEN BAN DRIVER MOI THANH CONG TREN HE THONG!" -ForegroundColor Green
+                if ($installResult.RebootRequired) {
+                    Write-Host " LUU Y: He thong can duoc khoi dong lai de hoan tat cai dat driver." -ForegroundColor Yellow
+                }
+            } else {
+                Write-Host (" Ket qua cai dat Driver: ResultCode={0} (RebootRequired={1})" -f $installResult.ResultCode, $installResult.RebootRequired) -ForegroundColor Yellow
+            }
+        }
+    }
+    catch {
+        Write-Host (" LOI KHI CHAY DRIVER UPDATE VIA WUA: {0}" -f $_.Exception.Message) -ForegroundColor Red
+        Write-SessionLog ("WUA Driver Install Error: {0}" -f $_.Exception.Message) 'ERROR'
+    }
+}
+
+function Invoke-LocalInfDriverInstall {
+    param([string] $FolderPath)
+    Write-Host "===========================================================================================" -ForegroundColor Cyan
+    Write-Host "       CAI DAT DRIVER OFFLINE TU THU MUC LOCAL / USB (.INF)" -ForegroundColor Cyan
+    Write-Host "===========================================================================================" -ForegroundColor Cyan
+
+    if ([string]::IsNullOrWhiteSpace($FolderPath) -or -not (Test-Path -LiteralPath $FolderPath)) {
+        Write-Host " Thu muc driver khong hop le hoac khong ton tai: $FolderPath" -ForegroundColor Red
+        return
+    }
+
+    Write-Host (" Dang quet va nap driver tu thu muc: {0}" -f $FolderPath) -ForegroundColor Yellow
+    Write-Host " Thuc thi: pnputil.exe /add-driver `"$FolderPath\*.inf`" /subdirs /install" -ForegroundColor Gray
+    
+    pnputil.exe /add-driver "$FolderPath\*.inf" /subdirs /install
+    Write-Host "`n Da hoan tat nap driver tu thu muc local." -ForegroundColor Green
+}
+
+function Invoke-OEMDriverAssistant {
+    $profile = Get-LaptopHardwareProfile
+    Write-Host "===========================================================================================" -ForegroundColor Cyan
+    Write-Host "               HO TRO LINK DRIVER CHINH HANG THEO DEVICE TAG / SERIAL" -ForegroundColor Cyan
+    Write-Host "===========================================================================================" -ForegroundColor Cyan
+    Write-Host ("  Hang san xuat   : {0}" -f $profile.Manufacturer) -ForegroundColor Yellow
+    Write-Host ("  Model           : {0}" -f $profile.Model) -ForegroundColor Yellow
+    Write-Host ("  Serial / Tag    : {0}" -f $profile.Serial) -ForegroundColor Green
+    
+    if ($profile.SupportUrl) {
+        Write-Host ("`n Link tra cuu truc tiep theo Serial/Service Tag:") -ForegroundColor Cyan
+        Write-Host (" -> {0}" -f $profile.SupportUrl) -ForegroundColor Green
+        try {
+            Start-Process $profile.SupportUrl | Out-Null
+            Write-Host " (Da mo lien ket tren trinh duyet cua ban)" -ForegroundColor Gray
+        } catch { }
+    } else {
+        Write-Host " Khong tim thay link ho tro tu dong cho hang nay. Vui long tra cuu thu cong." -ForegroundColor Yellow
+    }
+
+    Write-Host "`n CAC TRANG TAI DRIVER PHO BIEN CUA NHA SAN XUAT:" -ForegroundColor Cyan
+    Write-Host "  - Dell Support     : https://www.dell.com/support/home/drivers"
+    Write-Host "  - HP Support       : https://support.hp.com/drivers"
+    Write-Host "  - Lenovo Support   : https://pcsupport.lenovo.com/"
+    Write-Host "  - ASUS Support     : https://www.asus.com/support/Download-Center/"
+    Write-Host "  - Acer Support     : https://www.acer.com/content/support"
+    Write-Host "  - MSI Support      : https://www.msi.com/support/download"
+    Write-Host "  - Intel DSA        : https://www.intel.com/content/www/us/en/support/detect.html"
+    Write-Host "  - NVIDIA Drivers   : https://www.nvidia.com/Download/index.aspx"
+    Write-Host "  - AMD Drivers      : https://www.amd.com/en/support"
+}
+
 try {
     Write-SessionLog ('Started action: {0}' -f $Action)
     switch ($Action) {
@@ -437,6 +675,17 @@ try {
         'CaseNote'       { New-CaseNote }
         'IncidentBundle' { Invoke-IncidentBundle }
         'HealthScan'     { Invoke-HealthScan }
+        'DriverInstaller' {
+            switch ($DriverMode) {
+                'Info'             { Show-LaptopHardwareProfile }
+                'WUInstallMissing' { Invoke-WindowsUpdateDriverInstall -OnlyMissing $true }
+                'WUInstallAll'     { Invoke-WindowsUpdateDriverInstall -OnlyMissing $false }
+                'OEMLink'          { Invoke-OEMDriverAssistant }
+                'LocalINF'         { Invoke-LocalInfDriverInstall -FolderPath $DriverFolder }
+                'GPUPage'          { Start-Process 'https://www.nvidia.com/Download/index.aspx'; Start-Process 'https://www.amd.com/en/support'; Start-Process 'https://www.intel.com/content/www/us/en/support/detect.html' }
+                'NetworkPage'      { Start-Process 'https://www.intel.com/content/www/us/en/support/articles/000005511/wireless.html' }
+            }
+        }
     }
     exit 0
 }
