@@ -1,19 +1,19 @@
 {
     "name":  "Syscare Windows Tool",
     "version":  "2.2.0",
-    "generatedUtc":  "2026-08-24T03:36:49Z",
+    "generatedUtc":  "2026-10-09T09:45:08Z",
     "officialUrl":  "https://win.syscare.site",
     "minimumPowerShell":  "5.1",
     "launcherPayloads":  [
                              {
                                  "file":  "Tool_Windows.bat",
-                                 "sha256":  "8F8D85BBA6DA7EBD1020C24986F57926599FE33E784EBAD19DE43DB96528C92C",
-                                 "bytes":  51028
+                                 "sha256":  "983FD27D6344757E0226EC443D7CE5CCB3679F49790B2164E2625437F631B05A",
+                                 "bytes":  48823
                              },
                              {
                                  "file":  "Syscare.WindowsTool.ps1",
-                                 "sha256":  "1CF557FDC875165A29596302E73C72363C4D84DD46173D03FFB21D20553CD373",
-                                 "bytes":  37048
+                                 "sha256":  "EC8C6990DBED56E61412F64B5D0581C7BF1C65D43FA98D789BB462CCBE6549A3",
+                                 "bytes":  35051
                              }
                          ],
     "files":  [
@@ -39,8 +39,8 @@
                   },
                   {
                       "File":  "CHANGELOG.md",
-                      "SHA256":  "35AD1D57DCD584A37BCE179BC7142B9081DC5318FBD1A4FC8F1267F0E586B43E",
-                      "Bytes":  3002
+                      "SHA256":  "A9D46CC7E9FB41D747AFB7F459D537BB7F82330AF1FBCF26B77492AB1A2F4B4D",
+                      "Bytes":  2808
                   },
                   {
                       "File":  "CNAME",
@@ -49,33 +49,33 @@
                   },
                   {
                       "File":  "Invoke-JoITWindowsTool.ps1",
-                      "SHA256":  "176DB9D4590FAACA94CCAF5A34B88F19BA8B0C01A430F512A0D2D2F83685A3D6",
-                      "Bytes":  31936
+                      "SHA256":  "9BAFAAE31909BC5A2C241607BEA651F2BC7600870867BCD826560A2F6EE8040C",
+                      "Bytes":  31908
                   },
                   {
                       "File":  "README.md",
-                      "SHA256":  "318DABBC20DA2CDC127CDD1AF87F7E21A74ACBA3FD49077B83E2E3CFA43133DB",
-                      "Bytes":  8521
+                      "SHA256":  "A9B4A9466AF53AA32BD2D54CB403FBDC8E83ACE80F80ED304470569839E1FDC3",
+                      "Bytes":  9883
                   },
                   {
                       "File":  "Syscare.WindowsTool.ps1",
-                      "SHA256":  "1CF557FDC875165A29596302E73C72363C4D84DD46173D03FFB21D20553CD373",
-                      "Bytes":  37048
+                      "SHA256":  "EC8C6990DBED56E61412F64B5D0581C7BF1C65D43FA98D789BB462CCBE6549A3",
+                      "Bytes":  35051
                   },
                   {
                       "File":  "TEST_REPORT.md",
-                      "SHA256":  "625693D71934A1ECDDA142590B95CAA72F8596F5A50A7D0B93208565ED2BDFDA",
-                      "Bytes":  3227
+                      "SHA256":  "C1CC15D27E6594D3FF05848A594A6A4F1F38EB1195EBAECE8348E240B713F506",
+                      "Bytes":  4268
                   },
                   {
                       "File":  "Tool_Windows.bat",
-                      "SHA256":  "8F8D85BBA6DA7EBD1020C24986F57926599FE33E784EBAD19DE43DB96528C92C",
-                      "Bytes":  51028
+                      "SHA256":  "983FD27D6344757E0226EC443D7CE5CCB3679F49790B2164E2625437F631B05A",
+                      "Bytes":  48823
                   },
                   {
                       "File":  "index.html",
-                      "SHA256":  "176DB9D4590FAACA94CCAF5A34B88F19BA8B0C01A430F512A0D2D2F83685A3D6",
-                      "Bytes":  31936
+                      "SHA256":  "9BAFAAE31909BC5A2C241607BEA651F2BC7600870867BCD826560A2F6EE8040C",
+                      "Bytes":  31908
                   }
               ]
 }

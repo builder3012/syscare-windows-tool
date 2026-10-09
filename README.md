@@ -1,4 +1,4 @@
-# Syscare Windows Tool v2.1.0
+# Syscare Windows Tool v2.2.0
 
 Bộ công cụ hỗ trợ IT helpdesk và hạ tầng tại chỗ trên Windows 10/11, tối ưu cho thao tác nhanh, lưu bằng chứng xử lý và đáp ứng SLA. Menu chính vẫn chạy bằng BAT; các báo cáo chuyên sâu được thực hiện bởi mô-đun PowerShell đi kèm.
 
@@ -8,7 +8,15 @@ Lệnh sử dụng chính thức:
 irm https://win.syscare.site | iex
 ```
 
-## Điểm mới của v2.1.0
+## Điểm mới của v2.2.0
+
+- `[8] → [C]` mở trợ lý máy in và scan. Chọn `[1]` USB, `[2]` máy in chia sẻ qua PC/print server, `[3]` máy in IP riêng, `[4]` scan về thư mục SMB.
+- Chẩn đoán driver, cổng, trạng thái Spooler, hàng đợi, DNS và cổng TCP phù hợp; báo cáo lưu ở `Desktop\Syscare_Support`.
+- `[5]` chỉ xóa lệnh chờ của **một máy in được chọn** sau khi gõ `CLEAR`; `[6]` khởi động lại Spooler trên **máy đang chạy tool** sau khi gõ `RESTART`.
+- Với Toshiba/MFP scan-to-folder, nhập server, tên share và thư mục con; tool kiểm tra TCP 445, đường UNC bằng tài khoản PC hiện tại. Nếu chạy trên máy chủ chứa share, tool còn hiển thị share ACL và NTFS ACL gốc.
+- Phải kiểm tra trực tiếp trên máy in tài khoản SMB, mật khẩu, đường đi và job log. Bài kiểm tra từ PC **không chứng minh** máy in truy cập được server hoặc có quyền ghi bằng tài khoản lưu trong máy in.
+
+## Thay đổi của v2.1.0
 
 - Thêm `[H] Hướng dẫn sử dụng` ngay tại menu chính.
 - Có hướng dẫn bắt đầu nhanh, giới thiệu 10 nhóm tính năng và gợi ý theo tình huống helpdesk.
@@ -91,10 +99,12 @@ Nhật ký thao tác được lưu tại:
 | Tình huống | Thao tác đầu tiên | Tác vụ tiếp theo |
 |---|---|---|
 | Máy chậm/treo | Quick Triage | Performance; kiểm tra top CPU/RAM, dung lượng và Event Log |
-| Thiếu/Lỗi Driver Laptop/PC | Driver & Thiết bị `[5.8]` | Nhận diện Hãng/Model/Serial, cài driver qua Windows Update WHQL hoặc nạp INF local |
 | Không vào mạng | Network | Test gateway, DNS, Internet 443; chỉ reset sau khi xác nhận không điều khiển từ xa |
 | Không vào domain/share | Domain/AD/GPO | Secure channel, DC discovery, Kerberos, time; test port 53/88/389/445 tùy hệ thống |
-| Không in được | Printer | Xem queue/port/Spooler; chỉ xóa queue sau xác nhận |
+| Máy in USB không in | `[8] → [C] → [1]` | Kiểm tra nguồn/cáp, PnP, driver, queue; xử lý có xác nhận ở `[5]` hoặc `[6]` |
+| Máy in chia sẻ không kết nối | `[8] → [C] → [2]` | DNS, TCP 445/135, share, quyền in và driver trên print server |
+| Máy in IP Toshiba không in | `[8] → [C] → [3]` | Cổng thực tế, IP/port queue, trạng thái trên thiết bị, driver được duyệt |
+| Toshiba không scan về folder | `[8] → [C] → [4]` | UNC, TCP 445, quyền share + NTFS, account scan và log trên Toshiba/file server |
 | Update lỗi | Windows Update/Security | Kiểm tra service, policy, reboot pending và hotfix |
 | Chưa xác định nguyên nhân | Incident Bundle | Gắn mã ticket, rà soát dữ liệu rồi escalation |
 
@@ -151,10 +161,10 @@ Kết quả so sánh phải là `True`. Sau đó chạy BAT trực tiếp trên 
 ```powershell
 git status
 git add .
-git commit -m "Release v2.1.0 - Add in-tool guide and navigation"
+git commit -m "Release v2.2.0 - Add printer and scan troubleshooting"
 git push origin main
-git tag -a v2.1.0 -m "Syscare Windows Tool v2.1.0"
-git push origin v2.1.0
+git tag -a v2.2.0 -m "Syscare Windows Tool v2.2.0"
+git push origin v2.2.0
 ```
 
 Chờ workflow **pages build and deployment** thành công. Không sửa DNS, CNAME hoặc custom domain khi chỉ cập nhật tính năng.
@@ -162,9 +172,9 @@ Chờ workflow **pages build and deployment** thành công. Không sửa DNS, CN
 ### 5. Kiểm tra bản online
 
 ```powershell
-$url = 'https://win.syscare.site/?v=2.1.0'
+$url = 'https://win.syscare.site/?v=2.2.0'
 $online = [string](irm $url)
-$online | Select-String "ToolVersion = '2.1.0'"
+$online | Select-String "ToolVersion = '2.2.0'"
 irm $url | iex
 ```
 

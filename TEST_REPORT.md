@@ -1,4 +1,14 @@
-# Báo cáo kiểm thử bản phát hành 2.1.0
+# Báo cáo kiểm thử bản phát hành 2.2.0
+
+## Phần mở rộng máy in và scan (2026-10-09)
+
+- BAT: 147 nhãn riêng biệt, 323 đích `goto/call` đã kiểm tra, không thiếu hoặc trùng nhãn.
+- Builder tạo v2.2.0; launcher và `index.html` trùng byte; payload BAT/Core giải nén trùng byte nguồn; hash manifest đúng cho 12 file.
+- Menu `[8] → [C]` có 6 thao tác; `0` về nhóm `[8]`; màn hình kết quả có `B/M/0`.
+- **Chưa chạy thử thực tế trên Windows** vì môi trường build là Linux. Trước phát hành, thử trên Windows 10/11 và Windows Server 2016 nếu định dùng trên server: USB không có queue, máy in share/IP, UNC scan truy cập được/không được; thử hủy xác nhận sửa lỗi rồi chạy trên queue test.
+- Với lỗi Toshiba scan, thử job thực trên thiết bị, đối chiếu job log và event trên file server, kiểm tra cả share ACL và NTFS ACL của tài khoản scan. Kiểm tra UNC từ PC không đại diện cho kết nối từ máy in.
+
+## Kết quả lịch sử v2.1.0
 
 Ngày kiểm thử: 2026-08-10
 

@@ -1,16 +1,17 @@
 # Changelog
 
-## 2.2.0 - 2026-08-24
+## 2.2.0 - 2026-10-09
 
 ### Added
 
-- Tính năng **Tự động nhận diện thông tin máy tính/Laptop & Cài đặt Driver** thuộc menu `[5.8]`:
-  - Tự động nhận diện Hãng sản xuất (Dell, HP, Lenovo, ASUS, Acer, MSI, Surface,...), Model, Serial/Service Tag, phiên bản BIOS & HĐH.
-  - Phát hiện danh sách thiết bị chưa nhận driver hoặc bị lỗi Code 28 (Yellow Exclamation Mark / Unknown Device).
-  - Tích hợp Windows Update Driver Engine (WHQL): Tự động tìm kiếm, tải về và nạp driver chính hãng chuẩn từ Microsoft Update Catalog.
-  - Trích xuất tự động link hỗ trợ driver chính hãng theo Service Tag/Serial Number của thiết bị.
-  - Hỗ trợ nạp Driver offline từ thư mục local hoặc USB chứa file `.inf` bằng `pnputil`.
-  - Hỗ trợ lối tắt tải nhanh Driver Card đồ họa (NVIDIA, AMD, Intel) và Card mạng/Bluetooth (Intel, Realtek).
+- Trợ lý `[8] → [C]` chẩn đoán riêng máy in USB, máy in chia sẻ qua PC/print server, máy in IP và scan-to-folder SMB.
+- Báo cáo cục bộ với trạng thái queue, driver/port, PnP, DNS, TCP và UNC; hướng dẫn khoanh vùng lỗi Toshiba và quyền share/NTFS.
+- Xóa job theo máy in được chọn và khởi động lại Spooler cục bộ, đều cần nhập từ xác nhận riêng.
+
+### Security
+
+- Không hỏi/lưu mật khẩu máy scan, không bật SMB1 hoặc guest, không thay đổi ACL, driver hay cấu hình máy in tự động.
+- Nêu rõ kết quả kiểm tra UNC bằng tài khoản PC không đại diện cho tài khoản được cấu hình trong máy photocopy.
 
 ## 2.1.0 - 2026-08-10
 

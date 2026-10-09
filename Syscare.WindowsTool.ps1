@@ -2,13 +2,8 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('QuickTriage', 'Network', 'Domain', 'Performance', 'Printer', 'WindowsUpdate', 'Connectivity', 'CaseNote', 'IncidentBundle', 'HealthScan', 'DriverInstaller')]
+    [ValidateSet('QuickTriage', 'Network', 'Domain', 'Performance', 'Printer', 'WindowsUpdate', 'Connectivity', 'CaseNote', 'IncidentBundle', 'HealthScan', 'PrinterUsb', 'PrinterShared', 'PrinterIp', 'ScanFolder', 'PrinterClearQueue', 'PrinterRestartSpooler')]
     [string] $Action,
-
-    [ValidateSet('Info', 'WUInstallMissing', 'WUInstallAll', 'OEMLink', 'LocalINF', 'GPUPage', 'NetworkPage')]
-    [string] $DriverMode = 'Info',
-
-    [string] $DriverFolder,
 
     [string] $OutputRoot = (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Syscare_Support'),
     [string] $SessionLog
@@ -429,237 +424,207 @@ function Invoke-HealthScan {
     Complete-Output -Directory $directory
 }
 
-function Get-LaptopHardwareProfile {
-    $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue
-    $bios = Get-CimInstance Win32_BIOS -ErrorAction SilentlyContinue
-    $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
-
-    $manufacturer = if ($cs.Manufacturer) { $cs.Manufacturer.Trim() } else { 'Unknown' }
-    $model = if ($cs.Model) { $cs.Model.Trim() } else { 'Unknown' }
-    $serial = if ($bios.SerialNumber) { $bios.SerialNumber.Trim() } else { 'Unknown' }
-    $biosVersion = if ($bios.SMBIOSBIOSVersion) { $bios.SMBIOSBIOSVersion.Trim() } else { 'Unknown' }
-    $osName = if ($os.Caption) { $os.Caption.Trim() } else { 'Windows' }
-    $osArch = if ($os.OSArchitecture) { $os.OSArchitecture.Trim() } else { 'x64' }
-
-    $chassis = Get-CimInstance Win32_SystemEnclosure -ErrorAction SilentlyContinue
-    $chassisTypes = @($chassis.ChassisTypes)
-    $isLaptop = $chassisTypes | Where-Object { $_ -in @(8, 9, 10, 11, 12, 14, 30, 31, 32) }
-
-    $oemName = 'Unknown'
-    $supportUrl = ''
-    if ($manufacturer -like '*Dell*') {
-        $oemName = 'Dell'
-        if ($serial -and $serial -ne 'Unknown') {
-            $supportUrl = "https://www.dell.com/support/home/vi-vn/product-support/servicetag/$serial/drivers"
-        } else {
-            $supportUrl = "https://www.dell.com/support/home/vi-vn?app=drivers"
-        }
-    }
-    elseif ($manufacturer -like '*HP*' -or $manufacturer -like '*Hewlett-Packard*') {
-        $oemName = 'HP'
-        $supportUrl = "https://support.hp.com/vn-vi/drivers"
-    }
-    elseif ($manufacturer -like '*Lenovo*') {
-        $oemName = 'Lenovo'
-        if ($serial -and $serial -ne 'Unknown') {
-            $supportUrl = "https://pcsupport.lenovo.com/vn/en/productssearch?q=$serial"
-        } else {
-            $supportUrl = "https://pcsupport.lenovo.com/vn/en/"
-        }
-    }
-    elseif ($manufacturer -like '*ASUSTeK*' -or $manufacturer -like '*ASUS*') {
-        $oemName = 'ASUS'
-        $supportUrl = "https://www.asus.com/support/Download-Center/"
-    }
-    elseif ($manufacturer -like '*Acer*') {
-        $oemName = 'Acer'
-        if ($serial -and $serial -ne 'Unknown') {
-            $supportUrl = "https://www.acer.com/ac/vi/VN/content/support-product/$serial"
-        } else {
-            $supportUrl = "https://www.acer.com/ac/vi/VN/content/drivers"
-        }
-    }
-    elseif ($manufacturer -like '*MSI*' -or $manufacturer -like '*Micro-Star*') {
-        $oemName = 'MSI'
-        $supportUrl = "https://www.msi.com/support/download"
-    }
-    elseif ($manufacturer -like '*Gigabyte*') {
-        $oemName = 'Gigabyte'
-        $supportUrl = "https://www.gigabyte.com/Support"
-    }
-    elseif ($manufacturer -like '*Microsoft*') {
-        $oemName = 'Microsoft Surface'
-        $supportUrl = "https://support.microsoft.com/en-us/surface/download-drivers-and-firmware-for-surface-09bb2e09-2a4b-cb69-0951-078a7739e120"
-    }
-
-    $problemDevices = Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue | Where-Object { $_.Status -ne 'OK' }
-
-    return [pscustomobject]@{
-        Manufacturer   = $manufacturer
-        Model          = $model
-        Serial         = $serial
-        BIOSVersion    = $biosVersion
-        OS             = "$osName $osArch"
-        IsLaptop       = [bool]$isLaptop
-        OEMName        = $oemName
-        SupportUrl     = $supportUrl
-        ProblemDevices = $problemDevices
-    }
-}
-
-function Show-LaptopHardwareProfile {
-    $profile = Get-LaptopHardwareProfile
-    Write-Host "===========================================================================================" -ForegroundColor Cyan
-    Write-Host "                THONG TIN PHAN CUNG MAY TINH & TRANG THAI DRIVER" -ForegroundColor Cyan
-    Write-Host "===========================================================================================" -ForegroundColor Cyan
-    Write-Host ("  Hang san xuat   : {0} ({1})" -f $profile.Manufacturer, $profile.OEMName) -ForegroundColor Yellow
-    Write-Host ("  Model thiet bi  : {0}" -f $profile.Model) -ForegroundColor Yellow
-    Write-Host ("  Serial / Tag    : {0}" -f $profile.Serial) -ForegroundColor Green
-    Write-Host ("  Phien ban BIOS  : {0}" -f $profile.BIOSVersion)
-    Write-Host ("  He dieu hanh    : {0}" -f $profile.OS)
-    $devType = if ($profile.IsLaptop) { 'Laptop / Portable' } else { 'Desktop / PC' }
-    Write-Host ("  Loai thiet bi   : {0}" -f $devType)
-    if ($profile.SupportUrl) {
-        Write-Host ("  Link ho tro OEM : {0}" -f $profile.SupportUrl) -ForegroundColor Cyan
-    }
-    Write-Host "-------------------------------------------------------------------------------------------"
-    if ($profile.ProblemDevices -and $profile.ProblemDevices.Count -gt 0) {
-        Write-Host ("  PHAT HIEN {0} THIET BI CHUA NHAN DRIVER HOAC CO LOI (Code 28 / Missing):" -f $profile.ProblemDevices.Count) -ForegroundColor Red
-        foreach ($dev in $profile.ProblemDevices) {
-            Write-Host ("   - [{0}] {1} (Status: {2}, Class: {3})" -f $dev.InstanceId, $dev.FriendlyName, $dev.Status, $dev.PNPClass) -ForegroundColor Red
-        }
-    } else {
-        Write-Host "  TRANG THAI DRIVER: Tat ca thiet bi dang hoat dong binh thuong (No missing drivers)." -ForegroundColor Green
-    }
-    Write-Host "==========================================================================================="
-}
-
-function Invoke-WindowsUpdateDriverInstall {
-    param([bool] $OnlyMissing = $true)
-    Write-Host "===========================================================================================" -ForegroundColor Cyan
-    Write-Host "       TU DONG QUET VA CAI DAT DRIVER QUA WINDOWS UPDATE AGENT (WHQL)" -ForegroundColor Cyan
-    Write-Host "===========================================================================================" -ForegroundColor Cyan
-    Write-SessionLog ("Starting Windows Update Driver Install (OnlyMissing={0})" -f $OnlyMissing)
-
+# Printer assistant: local read-only checks, except for two separately confirmed repairs.
+# No printer credentials, scan files, or document contents are collected.
+function Test-AssistTcp {
+    param([string] $HostName, [int] $Port)
+    $client = New-Object Net.Sockets.TcpClient
     try {
-        $service = Get-Service -Name wuauserv -ErrorAction SilentlyContinue
-        if ($service -and $service.Status -ne 'Running') {
-            Write-Host " Dang khoi chay service Windows Update (wuauserv)..." -ForegroundColor Yellow
-            Start-Service -Name wuauserv -ErrorAction SilentlyContinue
-        }
-
-        Write-Host " Dang ket noi den Microsoft Update Catalog de tim Driver phu hop..." -ForegroundColor Yellow
-        $updateSession = New-Object -ComObject Microsoft.Update.Session
-        $updateSearcher = $updateSession.CreateUpdateSearcher()
-        $updateSearcher.ServerSelection = 2
-
-        $criteria = "IsInstalled=0 and Type='Driver'"
-        Write-Host " Running search query: $criteria"
-        $searchResult = $updateSearcher.Search($criteria)
-
-        if ($searchResult.Updates.Count -eq 0) {
-            Write-Host " KHONG TIM THAY DRIVER MOI NUA TREN WINDOWS UPDATE CATALOG." -ForegroundColor Green
-            Write-Host " He thong cua ban da duoc cai dat driver day du." -ForegroundColor Green
-            return
-        }
-
-        Write-Host (" Tim thay {0} driver kha dung tren Windows Update:" -f $searchResult.Updates.Count) -ForegroundColor Yellow
-        $updatesToDownload = New-Object -ComObject Microsoft.Update.UpdateColl
-        for ($i = 0; $i -lt $searchResult.Updates.Count; $i++) {
-            $u = $searchResult.Updates.Item($i)
-            Write-Host ("  [{0}] {1}" -f ($i + 1), $u.Title) -ForegroundColor Cyan
-            $updatesToDownload.Add($u) | Out-Null
-        }
-
-        Write-Host "`n Dang tai cac Driver ve he thong..." -ForegroundColor Yellow
-        $downloader = $updateSession.CreateUpdateDownloader()
-        $downloader.Updates = $updatesToDownload
-        $downloadResult = $downloader.Download()
-
-        if ($downloadResult.ResultCode -ne 2) {
-            Write-Host (" Co loi hoac tai chua xong driver (ResultCode: {0})." -f $downloadResult.ResultCode) -ForegroundColor Red
-        } else {
-            Write-Host " Tai thanh cong tat ca driver! Dang tien hanh cai dat..." -ForegroundColor Green
-        }
-
-        $updatesToInstall = New-Object -ComObject Microsoft.Update.UpdateColl
-        for ($i = 0; $i -lt $searchResult.Updates.Count; $i++) {
-            $u = $searchResult.Updates.Item($i)
-            if ($u.IsDownloaded) {
-                $updatesToInstall.Add($u) | Out-Null
-            }
-        }
-
-        if ($updatesToInstall.Count -gt 0) {
-            $installer = $updateSession.CreateUpdateInstaller()
-            $installer.Updates = $updatesToInstall
-            Write-Host " Dang thuc thi cai dat Driver..." -ForegroundColor Yellow
-            $installResult = $installer.Install()
-
-            if ($installResult.ResultCode -eq 2) {
-                Write-Host " CAI DAT PHIEN BAN DRIVER MOI THANH CONG TREN HE THONG!" -ForegroundColor Green
-                if ($installResult.RebootRequired) {
-                    Write-Host " LUU Y: He thong can duoc khoi dong lai de hoan tat cai dat driver." -ForegroundColor Yellow
-                }
-            } else {
-                Write-Host (" Ket qua cai dat Driver: ResultCode={0} (RebootRequired={1})" -f $installResult.ResultCode, $installResult.RebootRequired) -ForegroundColor Yellow
-            }
-        }
+        $pending = $client.BeginConnect($HostName, $Port, $null, $null)
+        if (-not $pending.AsyncWaitHandle.WaitOne(2500)) { return 'TIMEOUT' }
+        try { $client.EndConnect($pending); return 'OPEN' }
+        catch { return 'CLOSED/UNREACHABLE' }
     }
+    catch { return 'DNS/NETWORK ERROR: ' + $_.Exception.Message }
+    finally { $client.Close() }
+}
+
+function Read-AssistHost {
+    param([string] $Prompt)
+    $hostInput = (Read-Host $Prompt).Trim()
+    if ($hostInput -notmatch '^[A-Za-z0-9][A-Za-z0-9.-]{0,252}$' -or $hostInput -match '\.\.') {
+        throw 'Invalid IP or hostname. Enter a plain hostname or IPv4 address.'
+    }
+    return $hostInput
+}
+
+function Get-AssistPrinter {
+    param([switch] $AllowNone)
+    try { $printers = @(Get-Printer -ErrorAction Stop | Sort-Object Name) }
     catch {
-        Write-Host (" LOI KHI CHAY DRIVER UPDATE VIA WUA: {0}" -f $_.Exception.Message) -ForegroundColor Red
-        Write-SessionLog ("WUA Driver Install Error: {0}" -f $_.Exception.Message) 'ERROR'
+        if ($AllowNone) {
+            Write-Warning 'Cannot enumerate print queues (check Print Spooler). USB/PnP devices will still be checked.'
+            return $null
+        }
+        throw
+    }
+    if ($printers.Count -eq 0) {
+        if ($AllowNone) { Write-Host 'No printer queue installed; checking USB/PnP enumeration.'; return $null }
+        throw 'No local printer connection was found.'
+    }
+    for ($i = 0; $i -lt $printers.Count; $i++) {
+        Write-Host ('[{0}] {1} | port: {2}' -f ($i + 1), $printers[$i].Name, $printers[$i].PortName)
+    }
+    $inputNumber = Read-Host 'Enter the printer number (Enter checks devices only)'
+    if ($AllowNone -and [string]::IsNullOrWhiteSpace($inputNumber)) { return $null }
+    $selection = 0
+    if (-not [int]::TryParse($inputNumber, [ref]$selection) -or $selection -lt 1 -or $selection -gt $printers.Count) {
+        throw 'Cancelled or invalid printer number.'
+    }
+    return $printers[$selection - 1]
+}
+
+function Save-AssistReport {
+    param([string] $Kind, [scriptblock] $Body)
+    $directory = New-OutputDirectory $Kind
+    Save-Text (Join-Path $directory 'PRINTER_SCAN_DIAGNOSTIC.txt') $Body
+    $report = Join-Path $directory 'PRINTER_SCAN_DIAGNOSTIC.txt'
+    Write-Host ('Report: {0}' -f $report) -ForegroundColor Cyan
+    Get-Content -LiteralPath $report | Select-Object -First 70 | ForEach-Object { Write-Host $_ }
+    Complete-Output -Directory $directory -Open $false
+}
+
+function Get-AssistPrinterState {
+    param($Printer)
+    'Computer: ' + $env:COMPUTERNAME
+    'Current identity: ' + [Security.Principal.WindowsIdentity]::GetCurrent().Name
+    Get-Service Spooler | Format-List Name,Status,StartType
+    ''
+    $Printer | Format-List Name,Type,DriverName,PortName,PrinterStatus,WorkOffline,Shared,Published
+    'Jobs for selected printer:'
+    @(Get-PrintJob -PrinterName $Printer.Name -ErrorAction SilentlyContinue) |
+        Select-Object ID,JobStatus,SubmittedTime,Size | Format-Table -AutoSize
+    'Port configuration:'
+    Get-PrinterPort -Name $Printer.PortName -ErrorAction SilentlyContinue |
+        Format-List Name,PrinterHostAddress,PortNumber,Protocol,SNMPEnabled
+    if ($Printer.WorkOffline) { 'CHECK: printer queue is set to Work Offline.' }
+    if ($Printer.PrinterStatus -notin @('Normal', 'Idle', 0, 3)) {
+        'CHECK: printer reports a non-normal status; compare with its panel and queue.'
     }
 }
 
-function Invoke-LocalInfDriverInstall {
-    param([string] $FolderPath)
-    Write-Host "===========================================================================================" -ForegroundColor Cyan
-    Write-Host "       CAI DAT DRIVER OFFLINE TU THU MUC LOCAL / USB (.INF)" -ForegroundColor Cyan
-    Write-Host "===========================================================================================" -ForegroundColor Cyan
-
-    if ([string]::IsNullOrWhiteSpace($FolderPath) -or -not (Test-Path -LiteralPath $FolderPath)) {
-        Write-Host " Thu muc driver khong hop le hoac khong ton tai: $FolderPath" -ForegroundColor Red
-        return
+function Invoke-PrinterUsbAssist {
+    Write-Host 'USB printer: connect power and USB cable, then select its local queue.'
+    $printer = Get-AssistPrinter -AllowNone
+    Save-AssistReport 'PrinterUSB' {
+        Get-Service Spooler | Format-List Name,Status,StartType
+        if ($printer) { Get-AssistPrinterState $printer }
+        else { 'No queue selected; inspecting device enumeration only.' }
+        'USB/PnP printer devices (may include scanners and disconnected devices):'
+        Get-PnpDevice -Class Printer,PrintQueue -ErrorAction SilentlyContinue |
+            Select-Object FriendlyName,Class,Status,InstanceId | Format-Table -AutoSize
+        'USB printer enumerations:'
+        Get-CimInstance Win32_PnPEntity -Filter "PNPClass = 'Printer'" -ErrorAction SilentlyContinue |
+            Select-Object Name,Status,PNPDeviceID | Format-Table -AutoSize
+        'Interpretation: USB00x port with missing PnP device suggests cable/power/USB/driver checks.'
+        'Do not reinstall drivers automatically; compare device model and approved vendor driver first.'
     }
-
-    Write-Host (" Dang quet va nap driver tu thu muc: {0}" -f $FolderPath) -ForegroundColor Yellow
-    Write-Host " Thuc thi: pnputil.exe /add-driver `"$FolderPath\*.inf`" /subdirs /install" -ForegroundColor Gray
-    
-    pnputil.exe /add-driver "$FolderPath\*.inf" /subdirs /install
-    Write-Host "`n Da hoan tat nap driver tu thu muc local." -ForegroundColor Green
 }
 
-function Invoke-OEMDriverAssistant {
-    $profile = Get-LaptopHardwareProfile
-    Write-Host "===========================================================================================" -ForegroundColor Cyan
-    Write-Host "               HO TRO LINK DRIVER CHINH HANG THEO DEVICE TAG / SERIAL" -ForegroundColor Cyan
-    Write-Host "===========================================================================================" -ForegroundColor Cyan
-    Write-Host ("  Hang san xuat   : {0}" -f $profile.Manufacturer) -ForegroundColor Yellow
-    Write-Host ("  Model           : {0}" -f $profile.Model) -ForegroundColor Yellow
-    Write-Host ("  Serial / Tag    : {0}" -f $profile.Serial) -ForegroundColor Green
-    
-    if ($profile.SupportUrl) {
-        Write-Host ("`n Link tra cuu truc tiep theo Serial/Service Tag:") -ForegroundColor Cyan
-        Write-Host (" -> {0}" -f $profile.SupportUrl) -ForegroundColor Green
-        try {
-            Start-Process $profile.SupportUrl | Out-Null
-            Write-Host " (Da mo lien ket tren trinh duyet cua ban)" -ForegroundColor Gray
-        } catch { }
-    } else {
-        Write-Host " Khong tim thay link ho tro tu dong cho hang nay. Vui long tra cuu thu cong." -ForegroundColor Yellow
+function Invoke-PrinterSharedAssist {
+    $server = Read-AssistHost 'Print server or PC sharing the printer (hostname/IP)'
+    $share = (Read-Host 'Shared printer name (optional)').Trim()
+    if ($share -and $share -notmatch '^[^\\/:*?"<>|]{1,80}$') { throw 'Invalid share name.' }
+    $unc = if ($share) { '\\' + $server + '\' + $share } else { '(not supplied)' }
+    Save-AssistReport 'PrinterShared' {
+        'Print host: ' + $server
+        'Printer UNC: ' + $unc
+        'DNS lookup:'
+        Resolve-DnsName $server -ErrorAction SilentlyContinue | Select-Object Name,Type,IPAddress | Format-Table -AutoSize
+        'TCP 445 (SMB): ' + (Test-AssistTcp $server 445)
+        'TCP 135 (RPC endpoint): ' + (Test-AssistTcp $server 135)
+        'Local installed queues referencing host:'
+        Get-Printer -ErrorAction SilentlyContinue | Where-Object {
+            $_.Name -like ('*' + $server + '*')
+        } | Format-List Name,Type,DriverName,PortName,PrinterStatus,WorkOffline
+        'If TCP works but connect/print fails: check share name, approved driver, user print permission, print server logs and firewall RPC dynamic ports.'
+        'No connection or Point-and-Print policy is changed automatically.'
     }
+}
 
-    Write-Host "`n CAC TRANG TAI DRIVER PHO BIEN CUA NHA SAN XUAT:" -ForegroundColor Cyan
-    Write-Host "  - Dell Support     : https://www.dell.com/support/home/drivers"
-    Write-Host "  - HP Support       : https://support.hp.com/drivers"
-    Write-Host "  - Lenovo Support   : https://pcsupport.lenovo.com/"
-    Write-Host "  - ASUS Support     : https://www.asus.com/support/Download-Center/"
-    Write-Host "  - Acer Support     : https://www.acer.com/content/support"
-    Write-Host "  - MSI Support      : https://www.msi.com/support/download"
-    Write-Host "  - Intel DSA        : https://www.intel.com/content/www/us/en/support/detect.html"
-    Write-Host "  - NVIDIA Drivers   : https://www.nvidia.com/Download/index.aspx"
-    Write-Host "  - AMD Drivers      : https://www.amd.com/en/support"
+function Invoke-PrinterIpAssist {
+    $target = Read-AssistHost 'Printer IP or DNS name (e.g. Toshiba MFP)'
+    Save-AssistReport 'PrinterIP' {
+        'Target: ' + $target
+        'DNS lookup:'
+        Resolve-DnsName $target -ErrorAction SilentlyContinue | Select-Object Name,Type,IPAddress | Format-Table -AutoSize
+        foreach ($port in @(9100,515,631,80,443)) {
+            ('TCP {0}: {1}' -f $port, (Test-AssistTcp $target $port))
+        }
+        'Installed queues with matching port host address:'
+        $ports = @(Get-PrinterPort -ErrorAction SilentlyContinue | Where-Object {
+            $hostProperty = $_.PSObject.Properties['PrinterHostAddress']
+            ($hostProperty -and $hostProperty.Value -eq $target) -or $_.Name -eq $target
+        })
+        foreach ($p in $ports) {
+            $p | Format-List Name,PrinterHostAddress,PortNumber,Protocol,SNMPEnabled
+            Get-Printer -ErrorAction SilentlyContinue | Where-Object PortName -eq $p.Name |
+                Format-List Name,DriverName,PortName,PrinterStatus,WorkOffline
+        }
+        'A closed port is meaningful only if that protocol is configured for this printer.'
+        'A failed ping/status can reflect ICMP or SNMP policy; inspect the port and device web UI before changing anything.'
+    }
+}
+
+function Invoke-ScanFolderAssist {
+    $server = Read-AssistHost 'Scan destination server hostname or IP'
+    $share = (Read-Host 'Scan share name (single share segment)').Trim()
+    if ($share -notmatch '^[A-Za-z0-9_$.-]{1,80}$' -or $share -in @('.', '..')) { throw 'Invalid share name.' }
+    $folder = (Read-Host 'Relative subfolder below share (optional)').Trim()
+    if ($folder -and ($folder -match '(^[\\/]|[<>:"|?*]|\.\.|[\\/]$)' -or $folder.Length -gt 200)) { throw 'Invalid relative folder.' }
+    $unc = '\\' + $server + '\' + $share
+    if ($folder) { $unc += '\' + ($folder -replace '/', '\') }
+    Save-AssistReport 'ScanFolder' {
+        'Target UNC: ' + $unc
+        'Current PC identity: ' + [Security.Principal.WindowsIdentity]::GetCurrent().Name
+        'DNS lookup:'
+        Resolve-DnsName $server -ErrorAction SilentlyContinue | Select-Object Name,Type,IPAddress | Format-Table -AutoSize
+        'TCP 445 (PC to server only): ' + (Test-AssistTcp $server 445)
+        'UNC reachable as current PC identity (not copier identity): ' + (Test-Path -LiteralPath $unc -PathType Container)
+        if ($server -in @($env:COMPUTERNAME, 'localhost', '127.0.0.1')) {
+            'Share ACL (hosted on this PC):'
+            Get-SmbShareAccess -Name $share -ErrorAction SilentlyContinue | Format-Table -AutoSize
+            $localShare = Get-SmbShare -Name $share -ErrorAction SilentlyContinue
+            if ($localShare) {
+                'Local share path: ' + $localShare.Path
+                'NTFS ACL (root only):'
+                $acl = Get-Acl -LiteralPath $localShare.Path -ErrorAction SilentlyContinue
+                if ($acl) {
+                    $acl.Access | Select-Object IdentityReference,FileSystemRights,AccessControlType | Format-Table -AutoSize
+                }
+            }
+        }
+        'Important: this PC test cannot verify copier-to-server routing or its saved SMB credential.'
+        'On Toshiba: check SMB destination server/share/subfolder, DNS/IP, domain account, password expiry/lockout, and device event/job log.'
+        'On file server: check share AND NTFS write permission for the dedicated scan account, audit event, SMB version/signing policy, and firewall TCP 445.'
+        'Avoid guest/anonymous access, SMB1 enablement, broad Everyone write permissions, and storing a password in this report.'
+        'No test file is written and no credentials are requested.'
+    }
+}
+
+function Invoke-PrinterClearSelectedQueue {
+    $printer = Get-AssistPrinter
+    $jobs = @(Get-PrintJob -PrinterName $printer.Name -ErrorAction Stop)
+    if ($jobs.Count -eq 0) { Write-Host 'Selected printer has no queued jobs.'; return }
+    Write-Host ('WARNING: {0} jobs in queue {1} will be cancelled for all users of this queue.' -f $jobs.Count, $printer.Name) -ForegroundColor Yellow
+    $answer = Read-Host ('Type CLEAR to cancel jobs for this printer only')
+    if ($answer -cne 'CLEAR') { Write-Host 'Cancelled.'; return }
+    $failed = 0
+    foreach ($job in $jobs) {
+        try { Remove-PrintJob -PrinterName $printer.Name -ID $job.ID -ErrorAction Stop }
+        catch { $failed++; Write-Warning ('Job {0}: {1}' -f $job.ID, $_.Exception.Message) }
+    }
+    Write-SessionLog ('Queue clear: printer={0}, requested={1}, failed={2}' -f $printer.Name, $jobs.Count, $failed)
+    Write-Host ('Cancelled: {0}; failed: {1}. Remaining: {2}' -f ($jobs.Count - $failed), $failed, @(Get-PrintJob -PrinterName $printer.Name -ErrorAction SilentlyContinue).Count)
+}
+
+function Invoke-PrinterRestartSpooler {
+    Write-Host 'WARNING: restarting the LOCAL Spooler temporarily affects ALL print queues on this computer.' -ForegroundColor Yellow
+    $answer = Read-Host 'Type RESTART to continue'
+    if ($answer -cne 'RESTART') { Write-Host 'Cancelled.'; return }
+    Restart-Service -Name Spooler -ErrorAction Stop
+    Write-SessionLog 'Local Print Spooler restarted by operator'
+    Write-Host ('Local Print Spooler: {0}' -f (Get-Service Spooler).Status)
 }
 
 try {
@@ -670,22 +635,17 @@ try {
         'Domain'         { Invoke-FocusedReport 'Domain' { param($d) Save-DomainDetails $d } }
         'Performance'    { Invoke-FocusedReport 'Performance' { param($d) Save-SystemDetails $d } }
         'Printer'        { Invoke-FocusedReport 'Printer' { param($d) Save-PrinterDetails $d } }
+        'PrinterUsb'     { Invoke-PrinterUsbAssist }
+        'PrinterShared'  { Invoke-PrinterSharedAssist }
+        'PrinterIp'      { Invoke-PrinterIpAssist }
+        'ScanFolder'     { Invoke-ScanFolderAssist }
+        'PrinterClearQueue' { Invoke-PrinterClearSelectedQueue }
+        'PrinterRestartSpooler' { Invoke-PrinterRestartSpooler }
         'WindowsUpdate'  { Invoke-FocusedReport 'WindowsUpdate' { param($d) Save-SecurityUpdateDetails $d } }
         'Connectivity'   { Invoke-ConnectivityTest }
         'CaseNote'       { New-CaseNote }
         'IncidentBundle' { Invoke-IncidentBundle }
         'HealthScan'     { Invoke-HealthScan }
-        'DriverInstaller' {
-            switch ($DriverMode) {
-                'Info'             { Show-LaptopHardwareProfile }
-                'WUInstallMissing' { Invoke-WindowsUpdateDriverInstall -OnlyMissing $true }
-                'WUInstallAll'     { Invoke-WindowsUpdateDriverInstall -OnlyMissing $false }
-                'OEMLink'          { Invoke-OEMDriverAssistant }
-                'LocalINF'         { Invoke-LocalInfDriverInstall -FolderPath $DriverFolder }
-                'GPUPage'          { Start-Process 'https://www.nvidia.com/Download/index.aspx'; Start-Process 'https://www.amd.com/en/support'; Start-Process 'https://www.intel.com/content/www/us/en/support/detect.html' }
-                'NetworkPage'      { Start-Process 'https://www.intel.com/content/www/us/en/support/articles/000005511/wireless.html' }
-            }
-        }
     }
     exit 0
 }

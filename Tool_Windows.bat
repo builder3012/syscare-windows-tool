@@ -46,7 +46,7 @@ echo  [4] KHOI DONG VA PHUC HOI   - BCD, WinRE, Restore Point, Advanced Startup
 echo  [5] DRIVER VA THIET BI      - Driver, Device Manager, Verifier, DirectX
 echo  [6] BAO MAT VA CAP NHAT     - Defender, Firewall, Windows Update, ban quyen
 echo  [7] CHAN DOAN VA QUAN TRI   - Event, Reliability, Services, Registry, DISM info
-echo  [8] MAY IN VA TIEN ICH      - Spooler, Store cache, dong bo gio, cong cu he thong
+echo  [8] MAY IN VA TIEN ICH      - USB, shared/IP printer, scan folder, Spooler
 echo  [9] BAO CAO VA BANG CHUNG    - Bao cao nhanh, goi su co ZIP, health scan
 echo  [A] SLA QUICK TRIAGE         - Chan doan 1 lan chay, AD/GPO, mang, ticket
 echo  [H] HUONG DAN SU DUNG        - Bat dau nhanh, gioi thieu, phim dieu huong
@@ -120,7 +120,7 @@ echo  [4] Khoi dong va phuc hoi  : WinRE, BCD, Restore Point va Advanced Startup
 echo  [5] Driver va thiet bi     : Driver Store, thiet bi, Verifier va DirectX.
 echo  [6] Bao mat va cap nhat    : Defender, Firewall, hotfix, Update va ban quyen.
 echo  [7] Chan doan va quan tri  : Event, Service, Reliability, Registry va DISM info.
-echo  [8] May in va tien ich     : Spooler, Store, dong bo gio va cong cu he thong.
+echo  [8] May in va tien ich     : USB, may in share/IP, scan-to-folder, Spooler.
 echo  [9] Bao cao va bang chung  : Quick report, Health Scan va Incident Bundle.
 echo  [A] SLA Quick Triage      : Chan doan nhanh, AD/GPO, server/port va ticket.
 goto nav_help
@@ -152,7 +152,8 @@ echo  Chua ro nguyen nhan : [A] ^> [1] Quick Triage
 echo  Mat/chap chon mang  : [2] ^> [2], sau do [A] ^> [2] neu can bao cao sau
 echo  Loi domain/share    : [A] ^> [3], sau do test server/port tai [A] ^> [7]
 echo  May cham/treo       : [A] ^> [4], kiem tra them [3] va Event Viewer [7]
-echo  Khong in duoc       : [A] ^> [5], chi xoa queue tai [8] ^> [3] khi da xac nhan
+echo  Khong in duoc       : [8] ^> [C], chon USB/share/IP; [A] ^> [5] de lay bao cao
+echo  Khong nhan file scan: [8] ^> [C] ^> [4], kiem tra SMB va quyen folder
 echo  Windows bi loi      : [1] ^> [9] Sua loi toan dien; khoi dong lai neu duoc yeu cau
 echo  Can chuyen cap      : [A] ^> [9] ghi ticket, sau do [A] ^> [A] tao ZIP
 echo.
@@ -629,12 +630,10 @@ echo  [4] Xem trang thai Driver Verifier        - KHONG tu dong bat Verifier
 echo  [5] Liet ke thiet bi dang ket noi          - pnputil /enum-devices /connected
 echo  [6] Mo DirectX Diagnostic Tool             - dxdiag
 echo  [7] Mo System Information                  - msinfo32
-echo  [8] Tu dong nhan dien & Cai dat Driver     - Choice option cho Laptop / PC
 echo  [0] Quay lai menu chinh
 echo ===========================================================================================
-choice /C 123456780 /N /M "Chon chuc nang: "
-if errorlevel 9 goto main
-if errorlevel 8 goto laptop_driver_menu
+choice /C 12345670 /N /M "Chon chuc nang: "
+if errorlevel 8 goto main
 if errorlevel 7 goto driver_msinfo
 if errorlevel 6 goto driver_dxdiag
 if errorlevel 5 goto driver_devices
@@ -693,92 +692,6 @@ goto driver_menu
 call :log_action "driver_msinfo"
 start "" msinfo32.exe
 goto driver_menu
-
-:laptop_driver_menu
-cls
-echo ===========================================================================================
-echo  [5.8] TU DONG NHAN DIEN & CAI DAT DRIVER CHO LAPTOP / PC
-echo ===========================================================================================
-echo  [1] Nhan dien phan cung & Liet ke thiet bi thieu Driver (Code 28)
-echo  [2] Tu dong quet & Cai dat Driver con thieu qua Windows Update (WHQL)
-echo  [3] Quet va Cap nhat toan bo Driver he thong qua Windows Update
-echo  [4] Mo trang ho tro Driver chinh hang theo Service Tag / Serial Number
-echo  [5] Cai dat Driver tu thu muc / USB local (.inf)
-echo  [6] Mo trang tai Driver Card do hoa (NVIDIA, AMD, Intel)
-echo  [7] Mo trang tai Driver Card mang & Bluetooth (Intel, Realtek)
-echo  [0] Quay lai menu Driver
-echo ===========================================================================================
-choice /C 12345670 /N /M "Chon chuc nang: "
-if errorlevel 8 goto driver_menu
-if errorlevel 7 goto laptop_driver_network_page
-if errorlevel 6 goto laptop_driver_gpu_page
-if errorlevel 5 goto laptop_driver_local_inf
-if errorlevel 4 goto laptop_driver_oem
-if errorlevel 3 goto laptop_driver_wu_all
-if errorlevel 2 goto laptop_driver_wu_missing
-if errorlevel 1 goto laptop_driver_info
-goto laptop_driver_menu
-
-:laptop_driver_info
-call :log_action "laptop_driver_info"
-cls
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%CORE_PS1%" -Action DriverInstaller -DriverMode Info -SessionLog "%SESSION_LOG%"
-echo.
-goto nav_driver
-
-:laptop_driver_wu_missing
-call :log_action "laptop_driver_wu_missing"
-cls
-echo ===========================================================================================
-echo  TU DONG QUET VA CAI DAT DRIVER CON THIEU (WHQL VIA WINDOWS UPDATE)
-echo ===========================================================================================
-echo  Luu y: Qua trinh tai va cai dat driver can co ket noi Internet.
-echo.
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%CORE_PS1%" -Action DriverInstaller -DriverMode WUInstallMissing -SessionLog "%SESSION_LOG%"
-echo.
-goto nav_driver
-
-:laptop_driver_wu_all
-call :log_action "laptop_driver_wu_all"
-cls
-echo ===========================================================================================
-echo  QUET VA CAP NHAT TOAN BO DRIVER HE THONG (WHQL VIA WINDOWS UPDATE)
-echo ===========================================================================================
-echo  Luu y: Qua trinh tai va cai dat driver can co ket noi Internet.
-echo.
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%CORE_PS1%" -Action DriverInstaller -DriverMode WUInstallAll -SessionLog "%SESSION_LOG%"
-echo.
-goto nav_driver
-
-:laptop_driver_oem
-call :log_action "laptop_driver_oem"
-cls
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%CORE_PS1%" -Action DriverInstaller -DriverMode OEMLink -SessionLog "%SESSION_LOG%"
-echo.
-goto nav_driver
-
-:laptop_driver_local_inf
-call :log_action "laptop_driver_local_inf"
-cls
-echo ===========================================================================================
-echo  CAI DAT DRIVER OFFLINE TU THU MUC LOCAL / USB (.INF)
-echo ===========================================================================================
-set "DRV_DIR="
-set /p "DRV_DIR=Nhap duong dan den thu muc chua file .inf (vi du: D:\Drivers hoac E:\INF): "
-if not defined DRV_DIR goto laptop_driver_menu
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%CORE_PS1%" -Action DriverInstaller -DriverMode LocalINF -DriverFolder "%DRV_DIR%" -SessionLog "%SESSION_LOG%"
-echo.
-goto nav_driver
-
-:laptop_driver_gpu_page
-call :log_action "laptop_driver_gpu_page"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%CORE_PS1%" -Action DriverInstaller -DriverMode GPUPage -SessionLog "%SESSION_LOG%"
-goto laptop_driver_menu
-
-:laptop_driver_network_page
-call :log_action "laptop_driver_network_page"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%CORE_PS1%" -Action DriverInstaller -DriverMode NetworkPage -SessionLog "%SESSION_LOG%"
-goto laptop_driver_menu
 
 rem ----------------------------------------------------------------
 rem NHOM 6 - BAO MAT VA CAP NHAT
@@ -1035,10 +948,12 @@ echo  [8] Mo System Properties Advanced
 echo  [9] Mo thu muc Startup cua nguoi dung
 echo  [A] Khoi dong lai Windows Explorer
 echo  [B] Mo Clipboard Settings
+echo  [C] Tro ly sua loi may in va folder scan - USB, share, IP, Toshiba SMB
 echo  [0] Quay lai menu chinh
 echo ===========================================================================================
-choice /C 123456789AB0 /N /M "Chon chuc nang: "
-if errorlevel 12 goto main
+choice /C 123456789ABC0 /N /M "Chon chuc nang: "
+if errorlevel 13 goto main
+if errorlevel 12 goto printer_assist_menu
 if errorlevel 11 goto utility_clipboard
 if errorlevel 10 goto utility_restart_explorer
 if errorlevel 9 goto utility_startup_folder
@@ -1051,6 +966,53 @@ if errorlevel 3 goto utility_spooler_clear
 if errorlevel 2 goto utility_spooler_restart
 if errorlevel 1 goto utility_printers
 goto utilities_menu
+
+:printer_assist_menu
+cls
+echo ===========================================================================================
+echo  TRO LY MAY IN VA SCAN - KIEM TRA TRUOC KHI SUA
+echo ===========================================================================================
+echo  [1] May in cam USB truc tiep      - driver, USB/PnP, queue, Spooler
+echo  [2] May in chia se qua PC/server - hostname, TCP 445/135, ket noi va queue
+echo  [3] May in co IP rieng          - IP, port 9100/515/631, driver va queue
+echo  [4] Scan-to-folder qua SMB      - server, TCP 445, UNC va quyen truy cap
+echo  [5] Sua queue cua MOT may in    - XOA LENH IN cua may duoc chon
+echo  [6] Khoi dong lai Spooler       - Anh huong cac hang doi tren may nay
+echo  [0] Ve nhom may in va tien ich
+echo ===========================================================================================
+choice /C 1234560 /N /M "Chon [0-6]: "
+if errorlevel 7 goto utilities_menu
+if errorlevel 6 goto printer_assist_spooler
+if errorlevel 5 goto printer_assist_queue
+if errorlevel 4 goto printer_assist_scan
+if errorlevel 3 goto printer_assist_ip
+if errorlevel 2 goto printer_assist_shared
+if errorlevel 1 goto printer_assist_usb
+goto printer_assist_menu
+
+:printer_assist_usb
+call :run_core PrinterUsb
+goto nav_printer_assist
+
+:printer_assist_shared
+call :run_core PrinterShared
+goto nav_printer_assist
+
+:printer_assist_ip
+call :run_core PrinterIp
+goto nav_printer_assist
+
+:printer_assist_scan
+call :run_core ScanFolder
+goto nav_printer_assist
+
+:printer_assist_queue
+call :run_core PrinterClearQueue
+goto nav_printer_assist
+
+:printer_assist_spooler
+call :run_core PrinterRestartSpooler
+goto nav_printer_assist
 
 :utility_printers
 call :log_action "utility_printers"
@@ -1382,6 +1344,12 @@ call :completion_prompt "MAY IN VA TIEN ICH"
 if errorlevel 3 goto exit_tool
 if errorlevel 2 goto main
 goto utilities_menu
+
+:nav_printer_assist
+call :completion_prompt "TRO LY MAY IN VA SCAN"
+if errorlevel 3 goto exit_tool
+if errorlevel 2 goto main
+goto printer_assist_menu
 
 :nav_sla
 call :completion_prompt "SLA QUICK TRIAGE"
