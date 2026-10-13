@@ -11,9 +11,22 @@
   - Tự động đo lường và hiển thị dung lượng đĩa C: đã được giải phóng (tính bằng MB/GB).
 - **Bật / Tắt Fast Startup & Hibernation (`[3]`):**
   - Hỗ trợ kiểm tra và 1-click Bật / Tắt tính năng Khởi động nhanh (`powercfg /h off` & `powercfg /h on`), giải phóng file `hiberfil.sys` và khắc phục triệt để lỗi laptop nóng máy khi gập nắp, đen màn hình sau Sleep hoặc mất card mạng.
-- **Kiểm tra Bản quyền Chi tiết Windows & Microsoft Office (`[6]`):**
-  - Kiểm tra kênh bản quyền Windows (`slmgr /dli` - OEM, Retail, Volume/KMS) và thời hạn kích hoạt (`slmgr /xpr`).
-  - Tự động quét và chạy `ospp.vbs /dstatus` trên các phiên bản Microsoft Office (Office 16, 15, 14 cả 32-bit & 64-bit) để hiển thị trạng thái License và số ngày còn lại.
+- **Kiểm tra Bản quyền Chuyên sâu & Kiểm định Crack (Chuẩn ITSO Enterprise Audit - `[6]`, `[9]`):**
+  - Nhận diện toàn diện bản quyền Windows: Kênh cấp phép (`slmgr /dli`), thời hạn kích hoạt (`slmgr /xpr`), Partial Product Key, Registry Backup Key và BIOS OA3 OEM Key.
+  - Hỗ trợ chuyên sâu **Microsoft 365 Subscription** (Click-to-Run / vNext Licensing): Tự động trích xuất tài khoản email được cấp phép, Tenant ID, SKU gói bản quyền (Business / Enterprise), ngày gia hạn/hết hạn và trạng thái kích hoạt hiện hành (`Provisioned`/`Active`). Quét fallback qua `root\Office16\ospp.vbs`.
+  - **10 tiêu chí kiểm định Crack & An ninh bản quyền chuyên sâu (chuẩn ITSO Checker):**
+    1. Chữ ký số tệp hệ thống (`sppsvc.exe` Authenticode)
+    2. Ngoại lệ Windows Defender (KMS Exclusions)
+    3. Máy chủ KMS Crack (Rogue KMS host check)
+    4. Lịch sử PowerShell (Vết tích script crack MAS / KMS)
+    5. Móc nối KMS38 Hook (IFEO Debugger hook trên `SppExtComObj.exe` / `osppsvc.exe`)
+    6. Thư mục Tool lậu (AAct, KMSAuto, MAS, KMSPico, HEU...)
+    7. Tác vụ chạy ngầm kích hoạt lậu (Scheduled Tasks AutoKMS/KMSPico)
+    8. Can thiệp Registry (SPP bypass keys, KMS port overrides)
+    9. Logic Bản Quyền (Kiểm tra chéo Channel vs Windows Edition)
+    10. Lịch sử kích hoạt hệ thống (Security-SPP Event Log)
+  - Đánh giá tổng thể và rủi ro tuân thủ SAM (Software Asset Management).
+  - Tích hợp 1-Click xuất Báo cáo Kiểm định chi tiết định dạng HTML trực quan, sẵn sàng In hoặc Lưu PDF nộp kiểm toán.
 - **Quản lý Tài khoản Cục bộ & Built-in Administrator (`[7]`):**
   - Liệt kê tài khoản cục bộ, 1-Click Bật / Tắt tài khoản `Administrator` tích hợp (`net user administrator /active:yes|no`), đổi mật khẩu tài khoản và mở `lusrmgr.msc`.
 - **Đổi tên máy tính chuẩn thiết bị IT (Rename Computer - `[8]`):**

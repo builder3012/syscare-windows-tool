@@ -6,7 +6,11 @@
 - **Cấu trúc nhãn BAT:** Kiểm tra tự động 175 nhãn trong `Tool_Windows.bat` đạt **100% hợp lệ, 0 nhãn thiếu hoặc trỏ sai**.
 - **Kiểm thử thực thi thực tế (Live Execution on Windows):**
   - `SearchFix`: Tự động dừng WSearch, ngắt tiến trình tìm kiếm, đặt startup Automatic và khởi động lại dịch vụ thành công trong 2 giây.
-  - `LicenseCheck`: Truy vấn chính xác trạng thái bản quyền Windows (VOLUME_MAK, Licensed, Partial key) và quét các thư mục cài đặt Office chuẩn.
+  - `LicenseCheck & ITSO Crack Audit`:
+    - Nhận diện chính xác Windows 11 Pro, kênh VOLUME_MAK, Partial Key `K4R9M`, Registry Key `D84KV-7NXJR-FTWTG-GYYXG-D3WXM`.
+    - Trích xuất thành công bản quyền **Microsoft 365 Apps for business**, Account `tuanpham@phugiavn.onmicrosoft.com`, Tenant ID `b00dd3cf-8273-466e-ab28-c00c6ea93cd4`, Trạng thái `Provisioned` (Active), Ngày gia hạn `11/01/2027`.
+    - Bộ 10 tiêu chí an ninh & crack đạt 10/10 `[+] SẠCH`: Chữ ký Authenticode `sppsvc.exe` hợp lệ (Microsoft Windows), Defender Exclusion sạch, không có KMS Host giả lập, không có vết tích PowerShell crack, không có KMS38 IFEO hook, không có thư mục tool lậu, không có task chạy ngầm AutoKMS, Registry SPP sạch, logic bản quyền hợp lệ, log SPP sạch.
+    - Xuất file báo cáo HTML `License_Audit_*.html` đầy đủ định dạng bảng biểu, màu sắc cảnh báo chuẩn SAM và hỗ trợ in/xuất PDF trực quan.
   - `Build-Release`: Tạo tự động `Invoke-JoITWindowsTool.ps1`, `index.html`, `checksums.sha256` và `release-manifest.json` cho bản phát hành `v2.4.0`.
 
 ## Kết quả kiểm thử v2.3.0 (2026-10-13)

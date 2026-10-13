@@ -22,7 +22,7 @@ Bản 2.3.0 đã hoàn thiện nhóm chức năng Driver, Asset Specs, BitLocker
 | Cao | Ô Search trên Taskbar hoặc Start Menu thường xuyên bị đơ/treo | Người dùng không tìm được ứng dụng hoặc file làm việc | Tự động restart dịch vụ `WSearch`, kết thúc tiến trình `SearchHost` |
 | Cao | Ổ đĩa C: báo đỏ/đầy dung lượng làm máy chậm và không update được | User bị tràn ổ đĩa, tốn thời gian dọn dẹp thủ công | 1-Click Deep Clean an toàn `%TEMP%`, `Prefetch`, Update cache và Thùng rác |
 | Cao | Fast Startup gây lỗi nóng laptop khi gập máy hoặc đen màn hình | Lỗi driver nguồn/ACPI phổ biến trên Dell, ThinkPad, HP | Thêm tùy chọn 1-click Bật / Tắt Fast Startup (`powercfg /h off\|on`) |
-| Trung bình | Người dùng báo lỗi bản quyền Office hoặc sắp hết hạn Windows | IT thiếu công cụ xem nhanh kênh cấp phép và thời hạn | Thêm `slmgr /dli` và quét tự động `ospp.vbs /dstatus` của Office |
+| Cao | Bản quyền Office 365 theo năm không nhận diện được; thiếu kiểm định crack chuyên sâu | Máy tính doanh nghiệp dùng M365 bị sót bản quyền, IT không phát hiện được tool kích hoạt lậu | Tích hợp vNext token parser (Email/Tenant/Expiry) và bộ 10 tiêu chí kiểm định Crack chuẩn ITSO kèm xuất HTML |
 | Trung bình | Quên mật khẩu cục bộ, tài khoản Administrator bị khóa | IT mất thời gian gõ lệnh tay ngoài command prompt | Thêm menu quản lý user cục bộ, bật/tắt Built-in Admin và đổi pass |
 | Trung bình | Đổi tên máy tính khi bàn giao máy mới tốn nhiều bước | Tên máy không chuẩn quy ước công ty, khó quản lý | Tích hợp `Rename-Computer` kiểm tra chuẩn 15 ký tự và hẹn reboot |
 | Thấp | Remote Desktop bị tắt hoặc tường lửa chặn cổng 3389 | IT không thể remote hỗ trợ người dùng qua LAN | Thêm 1-click Bật / Tắt RDP qua Registry và mở Firewall 3389 |
