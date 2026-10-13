@@ -1,4 +1,4 @@
-# Syscare Windows Tool v2.2.0
+# Syscare Windows Tool v2.3.0
 
 Bộ công cụ hỗ trợ IT helpdesk và hạ tầng tại chỗ trên Windows 10/11, tối ưu cho thao tác nhanh, lưu bằng chứng xử lý và đáp ứng SLA. Menu chính vẫn chạy bằng BAT; các báo cáo chuyên sâu được thực hiện bởi mô-đun PowerShell đi kèm.
 
@@ -7,6 +7,14 @@ Lệnh sử dụng chính thức:
 ```powershell
 irm https://win.syscare.site | iex
 ```
+
+## Điểm mới của v2.3.0
+
+- **Quản lý & Cài đặt Driver (`[5]`):** Sao lưu toàn bộ OEM Driver tự động theo tên máy/ngày giờ; Phục hồi và cài đặt driver hàng loạt bằng `pnputil /add-driver *.inf /subdirs /install`; Gỡ bỏ driver bên thứ ba xung đột (`pnputil /delete-driver oemXX.inf`); Quét thiết bị thiếu driver và mở trang driver chính hãng (Dell, HP, Lenovo, Asus, Acer, Intel, AMD, NVIDIA).
+- **Thông tin phần cứng & Tài sản (`[3]`, `[7]`, `[A]`):** Tra cứu nhanh Serial/Service Tag, Model, Mainboard, BIOS, CPU, RAM Slots & tổng dung lượng; Tự động định dạng 1 dòng tóm tắt và copy thẳng vào Windows Clipboard để dán vào ticket SLA/ITSM.
+- **Bảo mật & BitLocker (`[6]`):** Kiểm tra trạng thái mã hóa các phân vùng và chip bảo mật TPM (`Get-Tpm` / `tpmtool`); Trích xuất an toàn BitLocker Recovery Key 48 ký tự ra file text có dấu thời gian trước khi can thiệp BIOS/phần cứng.
+- **Tiện ích Doanh nghiệp & M365 (`[8]`):** Clear cache toàn diện cho Microsoft 365, Teams (mới & cổ điển), Outlook RoamCache & OneAuth/IdentityCache sửa lỗi loop đăng nhập và treo profile; Sao lưu & nạp lại profile Wi-Fi (`netsh wlan`).
+- **Quản trị Domain & Account (`[7]`, `[8]`, `[A]`):** Sửa lỗi quan hệ tin cậy Domain (`Test-ComputerSecureChannel -Repair`, `nltest /sc_reset`, `klist purge`, `w32tm`, `gpupdate`); Mở nhanh Stored User Names and Passwords (`keymgr.dll`) và Windows Credential Manager.
 
 ## Điểm mới của v2.2.0
 
@@ -101,6 +109,11 @@ Nhật ký thao tác được lưu tại:
 | Máy chậm/treo | Quick Triage | Performance; kiểm tra top CPU/RAM, dung lượng và Event Log |
 | Không vào mạng | Network | Test gateway, DNS, Internet 443; chỉ reset sau khi xác nhận không điều khiển từ xa |
 | Không vào domain/share | Domain/AD/GPO | Secure channel, DC discovery, Kerberos, time; test port 53/88/389/445 tùy hệ thống |
+| Mất quan hệ tin cậy Domain | `[A] → [2] → [7]` hoặc `[7] → [B]` | Test-ComputerSecureChannel -Repair, nltest reset, sync w32tm, gpupdate |
+| Driver lỗi / Cài mới / Backup | `[5]` Driver và Thiết bị | Sao lưu driver OEM, nạp driver qua pnputil, xóa driver lỗi, mở link hãng |
+| Lấy cấu hình máy điền ticket | `[A] → [B]` hoặc `[3] → [B]` | Lấy specs, tự động copy 1 dòng tóm tắt vào clipboard để paste ticket SLA |
+| Nâng cấp BIOS / Thay mainboard | `[6] → [B] / [C]` | Kiểm tra BitLocker/TPM, trích xuất an toàn Recovery Key 48 ký tự ra TXT |
+| M365 / Teams / Outlook loop login | `[8] → [D]` hoặc `[A] → [2] → [8]` | Clear cache Teams/Outlook, sửa lỗi profile và loop xác thực |
 | Máy in USB không in | `[8] → [C] → [1]` | Kiểm tra nguồn/cáp, PnP, driver, queue; xử lý có xác nhận ở `[5]` hoặc `[6]` |
 | Máy in chia sẻ không kết nối | `[8] → [C] → [2]` | DNS, TCP 445/135, share, quyền in và driver trên print server |
 | Máy in IP Toshiba không in | `[8] → [C] → [3]` | Cổng thực tế, IP/port queue, trạng thái trên thiết bị, driver được duyệt |
@@ -161,10 +174,10 @@ Kết quả so sánh phải là `True`. Sau đó chạy BAT trực tiếp trên 
 ```powershell
 git status
 git add .
-git commit -m "Release v2.2.0 - Add printer and scan troubleshooting"
+git commit -m "Release v2.3.0 - Add Driver management, Asset specs, BitLocker, M365 cache and Domain repair"
 git push origin main
-git tag -a v2.2.0 -m "Syscare Windows Tool v2.2.0"
-git push origin v2.2.0
+git tag -a v2.3.0 -m "Syscare Windows Tool v2.3.0"
+git push origin v2.3.0
 ```
 
 Chờ workflow **pages build and deployment** thành công. Không sửa DNS, CNAME hoặc custom domain khi chỉ cập nhật tính năng.
@@ -172,9 +185,9 @@ Chờ workflow **pages build and deployment** thành công. Không sửa DNS, CN
 ### 5. Kiểm tra bản online
 
 ```powershell
-$url = 'https://win.syscare.site/?v=2.2.0'
+$url = 'https://win.syscare.site/?v=2.3.0'
 $online = [string](irm $url)
-$online | Select-String "ToolVersion = '2.2.0'"
+$online | Select-String "ToolVersion = '2.3.0'"
 irm $url | iex
 ```
 

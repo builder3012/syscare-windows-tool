@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
 set "TOOL_NAME=SYSCARE WINDOWS TOOL"
-set "TOOL_VERSION=2.2.0"
+set "TOOL_VERSION=2.3.0"
 set "CORE_PS1=%~dp0Syscare.WindowsTool.ps1"
 title %TOOL_NAME% v%TOOL_VERSION% - SLA HELPDESK VA HA TANG
 color 0B
@@ -444,10 +444,12 @@ echo  [7] Tao bao cao pin ra Desktop        - phu hop laptop
 echo  [8] Tao bao cao nang luong 60 giay    - xuat HTML ra Desktop
 echo  [9] Mo thu muc TEMP nguoi dung
 echo  [A] Mo Storage Settings
+echo  [B] Thong tin phan cung & Tai san     - Xuat 1 dong Ticket SLA va copy Clipboard
 echo  [0] Quay lai menu chinh
 echo ===========================================================================================
-choice /C 123456789A0 /N /M "Chon chuc nang: "
-if errorlevel 11 goto main
+choice /C 123456789AB0 /N /M "Chon chuc nang: "
+if errorlevel 12 goto main
+if errorlevel 11 goto disk_asset_specs
 if errorlevel 10 goto disk_storage_settings
 if errorlevel 9 goto disk_temp
 if errorlevel 8 goto disk_energy
@@ -520,6 +522,10 @@ goto disk_menu
 call :log_action "disk_storage_settings"
 start "" ms-settings:storagesense
 goto disk_menu
+
+:disk_asset_specs
+call :run_core AssetSpecs
+goto nav_disk
 
 rem ----------------------------------------------------------------
 rem NHOM 4 - KHOI DONG VA PHUC HOI
@@ -621,23 +627,31 @@ rem ----------------------------------------------------------------
 :driver_menu
 cls
 echo ===========================================================================================
-echo  [5] DRIVER VA THIET BI
+echo  [5] DRIVER VA THIET BI - SAO LUU, KHOI PHUC, GO BO VA CHAN DOAN
 echo ===========================================================================================
-echo  [1] Mo Device Manager
-echo  [2] Liet ke driver ben thu ba            - pnputil /enum-drivers
-echo  [3] Liet ke driver dang hoat dong         - driverquery /v
-echo  [4] Xem trang thai Driver Verifier        - KHONG tu dong bat Verifier
-echo  [5] Liet ke thiet bi dang ket noi          - pnputil /enum-devices /connected
-echo  [6] Mo DirectX Diagnostic Tool             - dxdiag
-echo  [7] Mo System Information                  - msinfo32
+echo  [1] Mo Device Manager                      - devmgmt.msc
+echo  [2] Liet ke driver ben thu ba (OEM)        - pnputil /enum-drivers
+echo  [3] Liet ke driver dang hoat dong          - driverquery /v
+echo  [4] Sao luu toan bo Driver (Export OEM)    - Export-WindowsDriver / DISM
+echo  [5] Khoi phuc/Cai dat Driver hang loat     - pnputil /add-driver *.inf
+echo  [6] Go bo driver loi/xung dot              - pnputil /delete-driver oemXX.inf
+echo  [7] Nhan dien laptop & Quet Driver online  - Windows Update WHQL & OEM Link
+echo  [8] Xem trang thai Driver Verifier         - verifier /query
+echo  [9] Liet ke thiet bi dang ket noi          - pnputil /enum-devices
+echo  [A] Mo DirectX Diagnostic Tool             - dxdiag
+echo  [B] Mo System Information                  - msinfo32
 echo  [0] Quay lai menu chinh
 echo ===========================================================================================
-choice /C 12345670 /N /M "Chon chuc nang: "
-if errorlevel 8 goto main
-if errorlevel 7 goto driver_msinfo
-if errorlevel 6 goto driver_dxdiag
-if errorlevel 5 goto driver_devices
-if errorlevel 4 goto driver_verifier
+choice /C 123456789AB0 /N /M "Chon chuc nang: "
+if errorlevel 12 goto main
+if errorlevel 11 goto driver_msinfo
+if errorlevel 10 goto driver_dxdiag
+if errorlevel 9 goto driver_devices
+if errorlevel 8 goto driver_verifier
+if errorlevel 7 goto driver_auto_scan
+if errorlevel 6 goto driver_uninstall
+if errorlevel 5 goto driver_restore
+if errorlevel 4 goto driver_backup
 if errorlevel 3 goto driver_query
 if errorlevel 2 goto driver_pnputil
 if errorlevel 1 goto driver_manager
@@ -662,6 +676,22 @@ cls
 call :pager_hint
 driverquery.exe /v /fo table | more /E
 echo.
+goto nav_driver
+
+:driver_backup
+call :run_core DriverBackup
+goto nav_driver
+
+:driver_restore
+call :run_core DriverRestore
+goto nav_driver
+
+:driver_uninstall
+call :run_core DriverUninstall
+goto nav_driver
+
+:driver_auto_scan
+call :run_core DriverAutoScan
 goto nav_driver
 
 :driver_verifier
@@ -711,10 +741,16 @@ echo  [7] Mo Windows Update
 echo  [8] Xem lich su hotfix/cap nhat da cai
 echo  [9] Kiem tra trang thai kich hoat Windows
 echo  [A] Mo Malicious Software Removal Tool     - MRT
+echo  [B] Kiem tra BitLocker va chip TPM         - manage-bde va Get-Tpm
+echo  [C] Trich xuat BitLocker Recovery Key      - Sao luu khoa 48 so ra tep TXT
+echo  [D] Mo TPM Management                      - tpm.msc
 echo  [0] Quay lai menu chinh
 echo ===========================================================================================
-choice /C 123456789A0 /N /M "Chon chuc nang: "
-if errorlevel 11 goto main
+choice /C 123456789ABCD0 /N /M "Chon chuc nang: "
+if errorlevel 14 goto main
+if errorlevel 13 goto security_tpm_msc
+if errorlevel 12 goto security_bitlocker_key
+if errorlevel 11 goto security_bitlocker_status
 if errorlevel 10 goto security_mrt
 if errorlevel 9 goto security_activation
 if errorlevel 8 goto security_hotfix
@@ -795,6 +831,19 @@ call :log_action "security_mrt"
 start "" mrt.exe
 goto security_menu
 
+:security_bitlocker_status
+call :run_core BitLockerStatus
+goto nav_security
+
+:security_bitlocker_key
+call :run_core BitLockerBackupKey
+goto nav_security
+
+:security_tpm_msc
+call :log_action "security_tpm_msc"
+start "" tpm.msc
+goto security_menu
+
 rem ----------------------------------------------------------------
 rem NHOM 7 - CHAN DOAN VA QUAN TRI
 rem ----------------------------------------------------------------
@@ -811,10 +860,13 @@ echo  [9] Installed Apps                   [A] Windows Optional Features
 echo  [B] Sao luu Registry SYSTEM          [C] So sanh HKLM va HKCU Software
 echo  [D] Liet ke tat ca Services          [E] Xem Windows Edition hien tai
 echo  [F] Xem cac Target Edition           [G] Xem Reserved Storage Status
+echo  [H] Thong tin tai san 1 dong Ticket  [I] Quan ly mat khau da luu (keymgr)
 echo  [0] Quay lai menu chinh
 echo ===========================================================================================
-choice /C 123456789ABCDEFG0 /N /M "Chon chuc nang: "
-if errorlevel 17 goto main
+choice /C 123456789ABCDEFGHI0 /N /M "Chon chuc nang: "
+if errorlevel 19 goto main
+if errorlevel 18 goto admin_keymgr
+if errorlevel 17 goto admin_asset_specs
 if errorlevel 16 goto admin_reserved_storage
 if errorlevel 15 goto admin_target_editions
 if errorlevel 14 goto admin_current_edition
@@ -929,6 +981,15 @@ DISM.exe /Online /Get-ReservedStorageState
 echo.
 goto nav_admin
 
+:admin_asset_specs
+call :run_core AssetSpecs
+goto nav_admin
+
+:admin_keymgr
+call :log_action "admin_keymgr"
+start "" rundll32.exe keymgr.dll,KRShowKeyMgr
+goto admin_menu
+
 rem ----------------------------------------------------------------
 rem NHOM 8 - MAY IN VA TIEN ICH
 rem ----------------------------------------------------------------
@@ -949,10 +1010,18 @@ echo  [9] Mo thu muc Startup cua nguoi dung
 echo  [A] Khoi dong lai Windows Explorer
 echo  [B] Mo Clipboard Settings
 echo  [C] Tro ly sua loi may in va folder scan - USB, share, IP, Toshiba SMB
+echo  [D] Xoa Cache Microsoft 365/Teams/Outlook - Sua loi treo ung dung, login loop
+echo  [E] Sao luu Profile Wi-Fi ra tep XML      - netsh wlan export profile
+echo  [F] Khoi phuc Profile Wi-Fi tu tep XML    - netsh wlan add profile
+echo  [G] Mo quan ly chung thuc Windows         - Credential Manager / keymgr
 echo  [0] Quay lai menu chinh
 echo ===========================================================================================
-choice /C 123456789ABC0 /N /M "Chon chuc nang: "
-if errorlevel 13 goto main
+choice /C 123456789ABCDEFG0 /N /M "Chon chuc nang: "
+if errorlevel 17 goto main
+if errorlevel 16 goto utility_credential_manager
+if errorlevel 15 goto utility_wifi_restore
+if errorlevel 14 goto utility_wifi_backup
+if errorlevel 13 goto utility_clear_office_cache
 if errorlevel 12 goto printer_assist_menu
 if errorlevel 11 goto utility_clipboard
 if errorlevel 10 goto utility_restart_explorer
@@ -1091,6 +1160,23 @@ call :log_action "utility_clipboard"
 start "" ms-settings:clipboard
 goto utilities_menu
 
+:utility_clear_office_cache
+call :run_core ClearOfficeCache
+goto nav_utilities
+
+:utility_wifi_backup
+call :run_core WiFiProfileBackup
+goto nav_utilities
+
+:utility_wifi_restore
+call :run_core WiFiProfileRestore
+goto nav_utilities
+
+:utility_credential_manager
+call :log_action "utility_credential_manager"
+start "" control.exe /name Microsoft.CredentialManager
+goto utilities_menu
+
 rem ----------------------------------------------------------------
 rem NHOM A - SLA QUICK TRIAGE
 rem ----------------------------------------------------------------
@@ -1109,10 +1195,12 @@ echo  [7] Test server va TCP port     - Nhap hostname/IP va cac port can kiem tr
 echo  [8] Sua nhanh tai cho           - DNS, time, GPO, Spooler, Explorer, Update services
 echo  [9] Ghi bien ban ticket         - Ma ticket, hien trang, xu ly, ket qua/next step
 echo  [A] Tao goi su co ZIP           - Bao cao day du kem SHA-256 de escalation
+echo  [B] Thong tin tai san 1 dong SLA- CPU, RAM, SN, Disk, IP de dan Ticket
 echo  [0] Quay lai menu chinh
 echo ===========================================================================================
-choice /C 123456789A0 /N /M "Chon chuc nang: "
-if errorlevel 11 goto main
+choice /C 123456789AB0 /N /M "Chon chuc nang: "
+if errorlevel 12 goto main
+if errorlevel 11 goto sla_asset_specs
 if errorlevel 10 goto sla_incident_bundle
 if errorlevel 9 goto sla_case_note
 if errorlevel 8 goto sla_fix_menu
@@ -1167,6 +1255,10 @@ if errorlevel 2 goto sla_menu
 call :run_core IncidentBundle
 goto nav_sla
 
+:sla_asset_specs
+call :run_core AssetSpecs
+goto nav_sla
+
 :sla_fix_menu
 cls
 echo ===========================================================================================
@@ -1178,10 +1270,16 @@ echo  [3] Cap nhat Group Policy user         - gpupdate /target:user /force
 echo  [4] Khoi dong lai Print Spooler        - Co the anh huong lenh in dang xu ly
 echo  [5] Bat dich vu Windows Update/BITS    - Khong reset policy
 echo  [6] Khoi dong lai Windows Explorer     - Taskbar/Desktop mat vai giay
+echo  [7] Sua loi quan he tin cay Domain     - Test-ComputerSecureChannel -Repair
+echo  [8] Xoa Cache Microsoft 365/Teams      - Sua loi treo ung dung, login loop
+echo  [9] Mo quan ly chung thuc Windows      - Credential Manager / keymgr
 echo  [0] Quay lai SLA Quick Triage
 echo ===========================================================================================
-choice /C 1234560 /N /M "Chon chuc nang: "
-if errorlevel 7 goto sla_menu
+choice /C 1234567890 /N /M "Chon chuc nang: "
+if errorlevel 10 goto sla_menu
+if errorlevel 9 goto sla_fix_keymgr
+if errorlevel 8 goto sla_fix_office_cache
+if errorlevel 7 goto sla_fix_domain
 if errorlevel 6 goto sla_fix_explorer
 if errorlevel 5 goto sla_fix_update_services
 if errorlevel 4 goto sla_fix_spooler
@@ -1234,6 +1332,19 @@ taskkill.exe /F /IM explorer.exe
 start "" explorer.exe
 call :log_result "sla_fix_explorer" "%errorlevel%"
 goto nav_sla_fix
+
+:sla_fix_domain
+call :run_core DomainRepair
+goto nav_sla_fix
+
+:sla_fix_office_cache
+call :run_core ClearOfficeCache
+goto nav_sla_fix
+
+:sla_fix_keymgr
+call :log_action "sla_fix_keymgr"
+start "" rundll32.exe keymgr.dll,KRShowKeyMgr
+goto sla_fix_menu
 
 rem ----------------------------------------------------------------
 rem NHOM 9 - BAO CAO VA BANG CHUNG

@@ -1,6 +1,17 @@
-# Báo cáo kiểm thử bản phát hành 2.2.0
+# Báo cáo kiểm thử bản phát hành 2.3.0
 
-## Phần mở rộng máy in và scan (2026-10-09)
+## Nâng cấp toàn diện Helpdesk & Hạ tầng v2.3.0 (2026-10-13)
+
+- **PowerShell AST & StrictMode 2.0:** Mô-đun `Syscare.WindowsTool.ps1` được phân tích bằng `[System.Management.Automation.Language.Parser]::ParseFile` đạt **0 lỗi cú pháp**. Đã bổ sung cơ chế kiểm tra thuộc tính an toàn cho đối tượng TPM/WMI nhằm tương thích tuyệt đối cả Windows 10 và Windows 11 (PowerShell 5.1 & PowerShell 7+).
+- **Kiểm tra nhãn BAT:** Toàn bộ cấu trúc `Tool_Windows.bat` (154 nhãn) và hơn 450 tham chiếu `goto/call` đã được xác minh tự động, **0 nhãn bị thiếu hoặc trỏ sai**.
+- **Kiểm thử thực tế trên Windows (Live Verification):**
+  - `AssetSpecs`: Thu thập chính xác Serial Number/Service Tag, Mainboard, BIOS, CPU, RAM Slots và dung lượng. Tạo file tóm tắt tại `Syscare_Support` và tự động copy chuỗi 1 dòng vào Windows Clipboard.
+  - `BitLockerStatus`: Truy vấn chính xác trạng thái bảo vệ BitLocker các phân vùng và thông số TPM chip (`TpmPresent`, `TpmReady`).
+  - Giao diện điều hướng: Đảm bảo đầy đủ luồng kết thúc `B` (quay lại nhóm), `M` (về menu chính), `0` (thoát) và xác nhận an toàn trước các tác vụ xóa/sửa.
+  - Session Logging: Mọi hành động đều được ghi log chi tiết có timestamp vào `%ProgramData%\Syscare\WindowsTool\Logs`.
+- **Tính toàn vẹn phát hành:** Quy trình `Build-Release.ps1` nhúng thành công hai payload BAT và Core vào Launcher; hash của `Invoke-JoITWindowsTool.ps1` và `index.html` hoàn toàn trùng khớp (SHA-256).
+
+## Kết quả kiểm thử v2.2.0 (2026-10-09)
 
 - BAT: 147 nhãn riêng biệt, 323 đích `goto/call` đã kiểm tra, không thiếu hoặc trùng nhãn.
 - Builder tạo v2.2.0; launcher và `index.html` trùng byte; payload BAT/Core giải nén trùng byte nguồn; hash manifest đúng cho 12 file.

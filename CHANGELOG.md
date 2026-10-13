@@ -1,5 +1,32 @@
 # Changelog
 
+## 2.3.0 - 2026-10-13
+
+### Added
+
+- **Quản lý Driver & Thiết bị (`[5]`):**
+  - Sao lưu toàn bộ OEM Driver (`Export-WindowsDriver` / `dism /export-driver`) tự động tạo thư mục theo tên máy và ngày giờ.
+  - Phục hồi và cài đặt driver hàng loạt bằng `pnputil /add-driver *.inf /subdirs /install`.
+  - Liệt kê và gỡ bỏ driver bên thứ ba theo Published Name (`pnputil /delete-driver oemXX.inf`).
+  - Tự động nhận diện thiết bị thiếu driver và cung cấp liên kết tải driver chính hãng (Dell, HP, Lenovo, Asus, Acer, Intel, AMD, NVIDIA).
+- **Thông tin phần cứng & Tài sản (`[3]`, `[7]`, `[A]`):**
+  - Tra cứu nhanh Serial Number / Service Tag, Model, Mainboard, BIOS, CPU, dung lượng & số khe RAM.
+  - Chuẩn hóa báo cáo tóm tắt 1 dòng và tự động copy vào Windows Clipboard để dán ngay vào Ticket SLA/ITSM.
+- **Bảo mật & BitLocker (`[6]`):**
+  - Kiểm tra trạng thái mã hóa BitLocker tất cả các ổ đĩa và trạng thái chip bảo mật TPM (`Get-Tpm` / `tpmtool`).
+  - Trích xuất an toàn BitLocker Recovery Key 48 ký tự ra file văn bản có dấu thời gian trước khi can thiệp BIOS/phần cứng.
+- **Tiện ích Doanh nghiệp & M365 (`[8]`):**
+  - Đóng tiến trình và xóa sạch cache Microsoft 365, Teams (New & Classic), Outlook RoamCache & OneAuth/IdentityCache sửa triệt để lỗi loop đăng nhập và treo profile.
+  - Sao lưu và khôi phục cấu hình mạng Wi-Fi (`netsh wlan export/add profile`).
+- **Quản trị Domain & Account (`[7]`, `[8]`, `[A]`):**
+  - Kiểm tra và tự động sửa chữa quan hệ tin cậy Domain (`Test-ComputerSecureChannel -Repair`, `nltest /sc_reset`, `klist purge`, `w32tm`, `gpupdate`).
+  - Mở nhanh công cụ quản lý chứng thực Windows Stored Passwords (`keymgr.dll`) và Windows Credential Manager.
+
+### Changed
+
+- Đồng bộ hóa menu CMD và mô-đun PowerShell `Syscare.WindowsTool.ps1` đạt chuẩn đồng nhất.
+- Bổ sung xác nhận an toàn `[Y/N]` và các từ khóa bảo vệ cho tất cả các thao tác nhạy cảm.
+
 ## 2.2.0 - 2026-10-09
 
 ### Added

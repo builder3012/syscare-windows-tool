@@ -1,18 +1,36 @@
 # Báo cáo rà soát Syscare Windows Tool
 
-Ngày rà soát gần nhất: 2026-08-10  
-Phiên bản đầu vào: 1.0.0  
-Phiên bản sau cập nhật: 2.1.0
+Ngày rà soát gần nhất: 2026-10-13  
+Phiên bản đầu vào: 2.2.0  
+Phiên bản sau cập nhật: 2.3.0
 
 ## Kết luận
 
-Bản 1.0.0 có cấu trúc menu rõ, đầy đủ nhóm lệnh Windows cơ bản và đã có xác nhận ở các thao tác dễ gây gián đoạn. Tuy nhiên, công cụ thiên về “hộp lệnh” hơn là quy trình helpdesk theo SLA: kỹ thuật viên phải mở nhiều mục riêng, không có timeline thao tác, thiếu chẩn đoán domain và đầu ra escalation chưa chuẩn hóa.
+Bản 1.0.0 và 2.0.0 - 2.2.0 đã xây dựng nền tảng menu BAT vững chắc kèm Quick Triage và chẩn đoán sự cố máy in/scan. Tuy nhiên, qua đối chiếu Gap Analysis với các tác vụ IT Helpdesk / Sysadmin thực tế trên Windows 10/11 trong môi trường doanh nghiệp, công cụ còn thiếu các khối chức năng quan trọng:
+1. Sao lưu/khôi phục OEM Driver và xử lý driver xung đột.
+2. Trích xuất mã BitLocker Recovery Key trước khi can thiệp BIOS/nâng cấp phần cứng.
+3. Thu thập thông tin tài sản máy tính (Asset Specs) định dạng chuẩn 1 dòng cho ticket SLA.
+4. Sửa nhanh lỗi loop đăng nhập và treo cache Microsoft 365, Teams, Outlook.
+5. Khắc phục lỗi mất quan hệ tin cậy Domain (Trust Relationship) tại trạm làm việc.
 
-Bản 2.0.0 giữ nguyên các chức năng cũ, bổ sung lớp chẩn đoán–bằng chứng–ticket để rút ngắn thời gian xác định nguyên nhân và chuyển cấp. Bản 2.1.0 hoàn thiện trải nghiệm tại hiện trường: hướng dẫn nằm ngay trong tool, mọi tác vụ có đích quay lại rõ ràng và màn hình phân trang giải thích phím sử dụng trước khi chạy.
+Bản 2.3.0 hoàn thiện trọn vẹn các thiếu hụt trên, giữ nguyên giao diện CLI số truyền thống, tích hợp xác nhận an toàn và ghi log tập trung.
 
-## Phát hiện và xử lý
+## Phát hiện và xử lý (GAP ANALYSIS v2.3.0)
 
-| Mức | Phát hiện | Ảnh hưởng | Xử lý đến v2.1.0 |
+| Mức | Phát hiện | Ảnh hưởng | Xử lý tại v2.3.0 |
+|---|---|---|---|
+| Cao | Thiếu công cụ sao lưu và khôi phục Driver OEM | Cài lại Windows mất nhiều thời gian tìm driver hãng | Thêm Export Driver tự động và cài đặt hàng loạt bằng `pnputil` |
+| Cao | Không có cơ chế gỡ driver bên thứ ba xung đột | Lỗi màn hình xanh (BSOD) do driver khó xử lý nhanh | Thêm danh sách OEM driver và gỡ bỏ theo Published Name |
+| Cao | Nguy cơ khóa máy khi can thiệp BIOS/phần cứng | Mất mã BitLocker Recovery dẫn đến kẹt ổ đĩa | Thêm trích xuất an toàn Recovery Key 48 ký tự ra TXT |
+| Cao | Lỗi mất tin cậy Domain làm user không đăng nhập được | IT phải gỡ máy ra khỏi domain và join lại | Thêm quy trình tự sửa kênh bảo mật `Test-ComputerSecureChannel -Repair` |
+| Trung bình | M365/Teams/Outlook thường xuyên loop xác thực/treo | Tốn thời gian xóa profile và cấu hình lại thủ công | Tự đóng tiến trình và dọn dẹp OneAuth, RoamCache, Teams cache |
+| Trung bình | Nhập cấu hình phần cứng vào ticket SLA thủ công | Mất thời gian gõ Serial/CPU/RAM, dễ sai sót | Thêm Asset Specs, xuất 1 dòng và tự copy vào Clipboard |
+| Trung bình | Mất cấu hình Wi-Fi nội bộ khi chuyển máy | Phải nhập lại key bảo mật nội bộ | Thêm sao lưu & nạp lại profile Wi-Fi bằng `netsh wlan` |
+| Thấp | Truy cập Credential Manager mất nhiều thao tác | Khó xử lý mật khẩu mạng lưu cũ bị kẹt | Tích hợp mở trực tiếp `keymgr.dll` và Windows Credential Manager |
+
+## Phát hiện và xử lý lịch sử (v2.0.0 - v2.2.0)
+
+| Mức | Phát hiện | Ảnh hưởng | Xử lý |
 |---|---|---|---|
 | Cao | Không có one-click triage | Mất thời gian đi qua nhiều menu, kết quả không đồng nhất | Thêm Quick Triage và kết luận PASS/ATTENTION |
 | Cao | Không có audit/session log | Khó chứng minh thời gian và tác vụ đã thực hiện | Tự ghi log mọi action tại ProgramData |
