@@ -1790,7 +1790,6 @@ function Invoke-LicenseCheck {
 
     $vnextFound = $false
     $vnextEmail = "N/A"
-    $vnextExpire = "N/A"
     $vnextStatus = "N/A"
     $vnextType = "N/A"
     $vnextTenant = "N/A"
@@ -1829,9 +1828,6 @@ function Invoke-LicenseCheck {
                         $vnextStatus = [string]$licJson.Status
                         if ($licJson.Metadata) {
                             $vnextTenant = [string]$licJson.Metadata.TenantId
-                            if ($licJson.Metadata.NotAfter) {
-                                $vnextExpire = ([DateTime]::Parse([string]$licJson.Metadata.NotAfter)).ToString('dd/MM/yyyy HH:mm:ss')
-                            }
                         }
                         break
                     }
@@ -1846,8 +1842,7 @@ function Invoke-LicenseCheck {
         Write-Host ("- Hinh thuc cap phep  : Ban quyen Thue bao (Subscription / Modern vNext)") -ForegroundColor Green
         Write-Host ("- Tai khoan kich hoat : {0}" -f $vnextEmail) -ForegroundColor Cyan
         Write-Host ("- Ma Tenant ID        : {0}" -f $vnextTenant)
-        Write-Host ("- Trang thai License  : {0} (Hoat dong binh thuong)" -f $vnextStatus) -ForegroundColor Green
-        Write-Host ("- Chu ky gia han tiep : {0} (Gia han tu dong theo goi)" -f $vnextExpire) -ForegroundColor Yellow
+        Write-Host ("- Trang thai License  : {0} (Dang hoat dong / Active)" -f $vnextStatus) -ForegroundColor Green
     }
 
     # Kiem tra them OSPP truyen thong
@@ -2137,8 +2132,7 @@ function Invoke-LicenseCheck {
     <tr><th>Hình thức cấp phép</th><td><span class="badge badge-success">$(if ($vnextFound) { "Bản quyền Thuê bao (Subscription / Modern vNext)" } else { "Bản quyền vĩnh viễn / Volume / OSPP" })</span></td></tr>
     <tr><th>Tài khoản được cấp</th><td><strong>$vnextEmail</strong></td></tr>
     <tr><th>Mã Tenant ID</th><td>$vnextTenant</td></tr>
-    <tr><th>Trạng thái License</th><td><span class="badge badge-success">$vnextStatus</span></td></tr>
-    <tr><th>Chu kỳ gia hạn tiếp</th><td>$vnextExpire</td></tr>
+    <tr><th>Trạng thái License</th><td><span class="badge badge-success">$vnextStatus (Đang hoạt động)</span></td></tr>
   </table>
 
   <h2>3. KẾT QUẢ ĐỐI SOÁT & PHÂN TÍCH DẤU VẾT CRACK</h2>
