@@ -1,21 +1,33 @@
 # Báo cáo rà soát Syscare Windows Tool
 
 Ngày rà soát gần nhất: 2026-10-13  
-Phiên bản đầu vào: 2.2.0  
-Phiên bản sau cập nhật: 2.3.0
+Phiên bản đầu vào: 2.3.0  
+Phiên bản sau cập nhật: 2.4.0
 
 ## Kết luận
 
-Bản 1.0.0 và 2.0.0 - 2.2.0 đã xây dựng nền tảng menu BAT vững chắc kèm Quick Triage và chẩn đoán sự cố máy in/scan. Tuy nhiên, qua đối chiếu Gap Analysis với các tác vụ IT Helpdesk / Sysadmin thực tế trên Windows 10/11 trong môi trường doanh nghiệp, công cụ còn thiếu các khối chức năng quan trọng:
-1. Sao lưu/khôi phục OEM Driver và xử lý driver xung đột.
-2. Trích xuất mã BitLocker Recovery Key trước khi can thiệp BIOS/nâng cấp phần cứng.
-3. Thu thập thông tin tài sản máy tính (Asset Specs) định dạng chuẩn 1 dòng cho ticket SLA.
-4. Sửa nhanh lỗi loop đăng nhập và treo cache Microsoft 365, Teams, Outlook.
-5. Khắc phục lỗi mất quan hệ tin cậy Domain (Trust Relationship) tại trạm làm việc.
+Bản 2.3.0 đã hoàn thiện nhóm chức năng Driver, Asset Specs, BitLocker, M365 Cache và Domain Repair. Để tiến tới phiên bản toàn diện nhất (v2.4.0) đáp ứng 100% các tình huống Helpdesk và Quản trị Hạ tầng thường gặp tại doanh nghiệp, đợt rà soát này đã phát hiện và xử lý tiếp 7 tác vụ nghiệp vụ quan trọng:
+1. Sửa lỗi ô Search và Start Menu bị đơ trên Windows 10/11.
+2. Dọn dẹp rác hệ thống sâu 1-Click (giải phóng dung lượng ổ C: và báo cáo số MB/GB).
+3. Bật/Tắt Fast Startup (Khởi động nhanh & Hibernation) xử lý triệt để lỗi sleep/nóng máy của laptop.
+4. Kiểm tra bản quyền chi tiết Windows (kênh OEM/Retail/Volume) và Microsoft Office (`ospp.vbs`).
+5. Quản lý tài khoản cục bộ, Bật/Tắt tài khoản Built-in Administrator và mở `lusrmgr.msc`.
+6. Đổi tên máy tính chuẩn NetBIOS IT (`Rename-Computer`) có hẹn lịch reboot.
+7. Bật/Tắt Remote Desktop (RDP) và tự động mở/đóng cổng Firewall 3389.
 
-Bản 2.3.0 hoàn thiện trọn vẹn các thiếu hụt trên, giữ nguyên giao diện CLI số truyền thống, tích hợp xác nhận an toàn và ghi log tập trung.
+## Phát hiện và xử lý (GAP ANALYSIS v2.4.0)
 
-## Phát hiện và xử lý (GAP ANALYSIS v2.3.0)
+| Mức | Phát hiện | Ảnh hưởng | Xử lý tại v2.4.0 |
+|---|---|---|---|
+| Cao | Ô Search trên Taskbar hoặc Start Menu thường xuyên bị đơ/treo | Người dùng không tìm được ứng dụng hoặc file làm việc | Tự động restart dịch vụ `WSearch`, kết thúc tiến trình `SearchHost` |
+| Cao | Ổ đĩa C: báo đỏ/đầy dung lượng làm máy chậm và không update được | User bị tràn ổ đĩa, tốn thời gian dọn dẹp thủ công | 1-Click Deep Clean an toàn `%TEMP%`, `Prefetch`, Update cache và Thùng rác |
+| Cao | Fast Startup gây lỗi nóng laptop khi gập máy hoặc đen màn hình | Lỗi driver nguồn/ACPI phổ biến trên Dell, ThinkPad, HP | Thêm tùy chọn 1-click Bật / Tắt Fast Startup (`powercfg /h off\|on`) |
+| Trung bình | Người dùng báo lỗi bản quyền Office hoặc sắp hết hạn Windows | IT thiếu công cụ xem nhanh kênh cấp phép và thời hạn | Thêm `slmgr /dli` và quét tự động `ospp.vbs /dstatus` của Office |
+| Trung bình | Quên mật khẩu cục bộ, tài khoản Administrator bị khóa | IT mất thời gian gõ lệnh tay ngoài command prompt | Thêm menu quản lý user cục bộ, bật/tắt Built-in Admin và đổi pass |
+| Trung bình | Đổi tên máy tính khi bàn giao máy mới tốn nhiều bước | Tên máy không chuẩn quy ước công ty, khó quản lý | Tích hợp `Rename-Computer` kiểm tra chuẩn 15 ký tự và hẹn reboot |
+| Thấp | Remote Desktop bị tắt hoặc tường lửa chặn cổng 3389 | IT không thể remote hỗ trợ người dùng qua LAN | Thêm 1-click Bật / Tắt RDP qua Registry và mở Firewall 3389 |
+
+## Phát hiện và xử lý lịch sử (v2.3.0)
 
 | Mức | Phát hiện | Ảnh hưởng | Xử lý tại v2.3.0 |
 |---|---|---|---|

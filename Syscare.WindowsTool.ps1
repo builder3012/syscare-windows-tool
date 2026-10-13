@@ -8,7 +8,8 @@ param(
         'PrinterUsb', 'PrinterShared', 'PrinterIp', 'ScanFolder', 'PrinterClearQueue', 'PrinterRestartSpooler',
         'DriverBackup', 'DriverRestore', 'DriverUninstall', 'DriverAutoScan',
         'AssetSpecs', 'BitLockerStatus', 'BitLockerBackupKey',
-        'ClearOfficeCache', 'WiFiProfileBackup', 'WiFiProfileRestore', 'DomainRepair'
+        'ClearOfficeCache', 'WiFiProfileBackup', 'WiFiProfileRestore', 'DomainRepair',
+        'SearchFix', 'DeepClean', 'FastStartupToggle', 'LicenseCheck', 'LocalUserAdmin', 'RenamePC', 'ToggleRDP'
     )]
     [string] $Action,
 
@@ -24,7 +25,7 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-$Script:ToolVersion = '2.3.0'
+$Script:ToolVersion = '2.4.0'
 
 function Write-SessionLog {
     param([string] $Message, [string] $Level = 'INFO')
@@ -1521,6 +1522,399 @@ function Invoke-DomainRepair {
     Write-SessionLog ('DomainRepair completed. Final status: ' + $finalStatus)
 }
 
+function Invoke-SearchFix {
+    [CmdletBinding()]
+    param()
+    Write-SessionLog 'Invoke-SearchFix started'
+    Write-Host '===========================================================================================' -ForegroundColor Cyan
+    Write-Host '  SUA LOI WINDOWS SEARCH VA START MENU (TASKBAR SEARCH FIX)' -ForegroundColor Cyan
+    Write-Host '==========================================================================================='
+    Write-Host ' Tien trinh se dung dich vu Search, ket thuc tien trinh giao dien Tim kiem va khoi dong lai.'
+
+    Write-Host ' [1/4] Dang dung dich vu Windows Search (WSearch)...' -ForegroundColor Gray
+    try { & net.exe stop wsearch /y 2>&1 | Out-Null } catch { }
+
+    Write-Host ' [2/4] Dang ket thuc tien trinh SearchHost, SearchIndexer, StartMenu...' -ForegroundColor Gray
+    $procs = @('SearchHost', 'SearchIndexer', 'StartMenuExperienceHost', 'ShellExperienceHost')
+    foreach ($p in $procs) {
+        try { Stop-Process -Name $p -Force -ErrorAction SilentlyContinue } catch { }
+    }
+    Start-Sleep -Seconds 1
+
+    Write-Host ' [3/4] Dang dat lai trang thai dich vu WSearch ve Automatic...' -ForegroundColor Gray
+    try { Set-Service -Name 'wsearch' -StartupType Automatic -ErrorAction SilentlyContinue } catch { }
+    try { & net.exe start wsearch 2>&1 | Out-Null } catch { }
+
+    Write-Host ' [4/4] Dang kiem tra lai trang thai dich vu...' -ForegroundColor Gray
+    $svc = Get-Service -Name 'wsearch' -ErrorAction SilentlyContinue
+    Write-Host '-------------------------------------------------------------------------------------------'
+    if ($svc -and $svc.Status -eq 'Running') {
+        Write-Host ' [THANH CONG] Dich vu Windows Search dang chay on dinh (Status: Running).' -ForegroundColor Green
+        Write-Host ' Hay thu nhan nut Start / Tim kiem tren Taskbar de kiem tra lai.' -ForegroundColor Cyan
+    } else {
+        Write-Host ' [CANH BAO] Khong the khoi dong lai dich vu wsearch tu dong.' -ForegroundColor Yellow
+        Write-Host ' Hay mo services.msc de kiem tra chi tiet.' -ForegroundColor Gray
+    }
+    Write-Host '==========================================================================================='
+    Write-SessionLog 'Invoke-SearchFix completed'
+}
+
+function Invoke-DeepClean {
+    [CmdletBinding()]
+    param()
+    Write-SessionLog 'Invoke-DeepClean started'
+    Write-Host '===========================================================================================' -ForegroundColor Cyan
+    Write-Host '  DON DEP HE THONG SAU 1-CLICK (DEEP SYSTEM JUNK CLEAN)' -ForegroundColor Cyan
+    Write-Host '==========================================================================================='
+    Write-Host ' Cac thu muc se duoc don dep an toan:'
+    Write-Host '  1. Thu muc Temp nguoi dung   : ' -NoNewline; Write-Host $env:TEMP -ForegroundColor Yellow
+    Write-Host '  2. Thu muc Temp he thong     : ' -NoNewline; Write-Host "$env:SystemRoot\Temp" -ForegroundColor Yellow
+    Write-Host '  3. Thu muc Prefetch          : ' -NoNewline; Write-Host "$env:SystemRoot\Prefetch" -ForegroundColor Yellow
+    Write-Host '  4. Cache Windows Update      : ' -NoNewline; Write-Host "$env:SystemRoot\SoftwareDistribution\Download" -ForegroundColor Yellow
+    Write-Host '  5. Thung rac Recycle Bin     : Tat ca cac o dia' -ForegroundColor Yellow
+    Write-Host '-------------------------------------------------------------------------------------------'
+
+    $initFree = 0
+    try {
+        $cDrive = Get-PSDrive -Name C -ErrorAction SilentlyContinue
+        if ($cDrive) { $initFree = $cDrive.Free }
+    } catch { }
+
+    $confirm = Read-Host 'Ban co chac chan muon tien hanh don dep he thong? (Y/N)'
+    if ($confirm -notmatch '^[Yy]') {
+        Write-Host 'Da huy thao tac don dep.' -ForegroundColor Yellow
+        return
+    }
+
+    $deletedCount = 0
+    $targets = @(
+        $env:TEMP,
+        (Join-Path $env:SystemRoot 'Temp'),
+        (Join-Path $env:SystemRoot 'Prefetch'),
+        (Join-Path (Join-Path $env:SystemRoot 'SoftwareDistribution') 'Download')
+    )
+
+    foreach ($folder in $targets) {
+        if ([IO.Directory]::Exists($folder)) {
+            Write-Host (' Dang don dep: {0}...' -f $folder) -ForegroundColor Gray
+            try {
+                $items = Get-ChildItem -LiteralPath $folder -Force -ErrorAction SilentlyContinue
+                foreach ($item in $items) {
+                    try {
+                        Remove-Item -LiteralPath $item.FullName -Recurse -Force -ErrorAction SilentlyContinue
+                        $deletedCount++
+                    } catch { }
+                }
+            } catch { }
+        }
+    }
+
+    Write-Host ' Dang don dep Thung rac (Recycle Bin)...' -ForegroundColor Gray
+    try {
+        Clear-RecycleBin -Force -ErrorAction SilentlyContinue | Out-Null
+    } catch { }
+
+    $finalFree = 0
+    try {
+        $cDrive = Get-PSDrive -Name C -ErrorAction SilentlyContinue
+        if ($cDrive) { $finalFree = $cDrive.Free }
+    } catch { }
+
+    $freedBytes = [Math]::Max(0, ($finalFree - $initFree))
+    $freedMB = [Math]::Round(($freedBytes / 1MB), 2)
+
+    Write-Host '-------------------------------------------------------------------------------------------'
+    Write-Host ' [HOAN TAT] Don dep he thong sau thanh cong!' -ForegroundColor Green
+    Write-Host (' Tong so muc da xu ly/xoa : {0} muc' -f $deletedCount)
+    if ($freedMB -gt 1024) {
+        $freedGB = [Math]::Round(($freedMB / 1024), 2)
+        Write-Host (' Dung luong o C: da duoc giai phong: ~{0} GB' -f $freedGB) -ForegroundColor Cyan
+    } else {
+        Write-Host (' Dung luong o C: da duoc giai phong: ~{0} MB' -f $freedMB) -ForegroundColor Cyan
+    }
+    Write-Host '==========================================================================================='
+    Write-SessionLog ('Invoke-DeepClean completed. Freed MB: ' + $freedMB)
+}
+
+function Invoke-FastStartupToggle {
+    [CmdletBinding()]
+    param()
+    Write-SessionLog 'Invoke-FastStartupToggle started'
+    Write-Host '===========================================================================================' -ForegroundColor Cyan
+    Write-Host '  BAT / TAT FAST STARTUP VA HIBERNATION (NGUON & KHOI DONG NHANH)' -ForegroundColor Cyan
+    Write-Host '==========================================================================================='
+    Write-Host ' Giai thich IT:'
+    Write-Host '  - Tinh nang Fast Startup tao file hiberfil.sys (ngon 4-16GB RAM tren o C).'
+    Write-Host '  - Day la nguyen nhan hang dau khien laptop khong tat han quat khi gap may, nong may,'
+    Write-Host '    loi mat card mang/driver Wi-Fi hoac man hinh den khi danh thuc.'
+    Write-Host '-------------------------------------------------------------------------------------------'
+    Write-Host ' Trang thai cac che do Sleep/Hibernate hien tai:' -ForegroundColor Gray
+    try { & powercfg.exe /a } catch { }
+    Write-Host '-------------------------------------------------------------------------------------------'
+    Write-Host ' [1] TAT Fast Startup & Hibernation (Khuyen nghi cho Laptop bi nong / loi sleep / tiet kiem o C)' -ForegroundColor Yellow
+    Write-Host ' [2] BAT Fast Startup & Hibernation (Cho may can khoi dong nhanh)' -ForegroundColor Green
+    Write-Host ' [0] Quay lai'
+    Write-Host '-------------------------------------------------------------------------------------------'
+
+    $choice = Read-Host 'Chon thao tac [0-2]'
+    switch ($choice) {
+        '1' {
+            Write-Host ' Dang tat Fast Startup & Hibernation (powercfg /h off)...' -ForegroundColor Gray
+            try {
+                & powercfg.exe /h off
+                Write-Host ' [THANH CONG] Da tat Hibernation va Fast Startup.' -ForegroundColor Green
+                Write-Host ' File hiberfil.sys da duoc xoa, giai phong dung luong tren o C.' -ForegroundColor Cyan
+            } catch {
+                Write-Host (' Loi: {0}' -f $_.Exception.Message) -ForegroundColor Red
+            }
+        }
+        '2' {
+            Write-Host ' Dang bat Fast Startup & Hibernation (powercfg /h on)...' -ForegroundColor Gray
+            try {
+                & powercfg.exe /h on
+                Write-Host ' [THANH CONG] Da bat Hibernation va Fast Startup.' -ForegroundColor Green
+            } catch {
+                Write-Host (' Loi: {0}' -f $_.Exception.Message) -ForegroundColor Red
+            }
+        }
+        default {
+            Write-Host 'Quay lai menu.'
+        }
+    }
+    Write-Host '==========================================================================================='
+    Write-SessionLog 'Invoke-FastStartupToggle completed'
+}
+
+function Invoke-LicenseCheck {
+    [CmdletBinding()]
+    param()
+    Write-SessionLog 'Invoke-LicenseCheck started'
+    Write-Host '===========================================================================================' -ForegroundColor Cyan
+    Write-Host '  KIEM TRA BAN QUYEN CHI TIET: WINDOWS VA MICROSOFT OFFICE' -ForegroundColor Cyan
+    Write-Host '==========================================================================================='
+
+    Write-Host ' [1/2] KIEM TRA BAN QUYEN WINDOWS...' -ForegroundColor Yellow
+    Write-Host ' --- Thoi han kich hoat (slmgr /xpr) ---' -ForegroundColor Gray
+    try { & cscript.exe //nologo "$env:SystemRoot\System32\slmgr.vbs" /xpr } catch { }
+    Write-Host ' --- Thong tin kenh ban quyen (slmgr /dli) ---' -ForegroundColor Gray
+    try { & cscript.exe //nologo "$env:SystemRoot\System32\slmgr.vbs" /dli } catch { }
+
+    Write-Host '-------------------------------------------------------------------------------------------'
+    Write-Host ' [2/2] KIEM TRA BAN QUYEN MICROSOFT OFFICE...' -ForegroundColor Yellow
+
+    $searchPaths = @(
+        "$env:ProgramFiles\Microsoft Office\Office16\ospp.vbs",
+        "${env:ProgramFiles(x86)}\Microsoft Office\Office16\ospp.vbs",
+        "$env:ProgramFiles\Microsoft Office\Office15\ospp.vbs",
+        "${env:ProgramFiles(x86)}\Microsoft Office\Office15\ospp.vbs",
+        "$env:ProgramFiles\Microsoft Office\Office14\ospp.vbs",
+        "${env:ProgramFiles(x86)}\Microsoft Office\Office14\ospp.vbs"
+    )
+
+    $osppPath = $null
+    foreach ($p in $searchPaths) {
+        if ([IO.File]::Exists($p)) {
+            $osppPath = $p
+            break
+        }
+    }
+
+    if ($osppPath) {
+        Write-Host (' Tim thay cong cu quan ly Office tai: {0}' -f $osppPath) -ForegroundColor Gray
+        Write-Host ' Dang truy van trang thai ban quyen Office (/dstatus)...' -ForegroundColor Gray
+        try {
+            $out = & cscript.exe //nologo $osppPath /dstatus 2>&1 | Out-String
+            Write-Host $out.Trim()
+        } catch {
+            Write-Host (' Loi truy van Office: {0}' -f $_.Exception.Message) -ForegroundColor Red
+        }
+    } else {
+        Write-Host ' Khong tim thay script ospp.vbs tren may.' -ForegroundColor Gray
+        Write-Host ' (May co the chua cai Office hoac dang su dung ban Office Store/Web apps).' -ForegroundColor Gray
+    }
+    Write-Host '==========================================================================================='
+    Write-SessionLog 'Invoke-LicenseCheck completed'
+}
+
+function Invoke-LocalUserAdmin {
+    [CmdletBinding()]
+    param()
+    Write-SessionLog 'Invoke-LocalUserAdmin started'
+    Write-Host '===========================================================================================' -ForegroundColor Cyan
+    Write-Host '  QUAN LY TAI KHOAN CUC BO VA BUILT-IN ADMINISTRATOR' -ForegroundColor Cyan
+    Write-Host '==========================================================================================='
+
+    Write-Host ' Danh sach tai khoan cuc bo tren may:' -ForegroundColor Yellow
+    try {
+        & net.exe user
+    } catch { }
+
+    Write-Host '-------------------------------------------------------------------------------------------'
+    Write-Host ' [1] Bat tai khoan Built-in Administrator (net user administrator /active:yes)'
+    Write-Host ' [2] Tat tai khoan Built-in Administrator (net user administrator /active:no)'
+    Write-Host ' [3] Dat lai mat khau cho mot tai khoan (net user <ten> *)'
+    Write-Host ' [4] Mo bang quan ly Local Users and Groups (lusrmgr.msc)'
+    Write-Host ' [0] Quay lai'
+    Write-Host '-------------------------------------------------------------------------------------------'
+
+    $choice = Read-Host 'Chon thao tac [0-4]'
+    switch ($choice) {
+        '1' {
+            $c = Read-Host 'Ban co chac chan muon BAT tai khoan Built-in Administrator? (Y/N)'
+            if ($c -match '^[Yy]') {
+                try {
+                    & net.exe user administrator /active:yes
+                    Write-Host ' [THANH CONG] Da bat tai khoan Administrator tich hop.' -ForegroundColor Green
+                    $setPw = Read-Host 'Ban co muon dat mat khau cho tai khoan Administrator ngay bay gio khong? (Y/N)'
+                    if ($setPw -match '^[Yy]') {
+                        & net.exe user administrator *
+                    }
+                } catch {
+                    Write-Host (' Loi: {0}' -f $_.Exception.Message) -ForegroundColor Red
+                }
+            }
+        }
+        '2' {
+            $c = Read-Host 'Ban co chac chan muon TAT tai khoan Built-in Administrator? (Y/N)'
+            if ($c -match '^[Yy]') {
+                try {
+                    & net.exe user administrator /active:no
+                    Write-Host ' [THANH CONG] Da tat tai khoan Administrator tich hop.' -ForegroundColor Green
+                } catch {
+                    Write-Host (' Loi: {0}' -f $_.Exception.Message) -ForegroundColor Red
+                }
+            }
+        }
+        '3' {
+            $u = Read-Host 'Nhap ten tai khoan muon doi mat khau'
+            if (-not [string]::IsNullOrWhiteSpace($u)) {
+                try {
+                    & net.exe user $u.Trim() *
+                } catch {
+                    Write-Host (' Loi: {0}' -f $_.Exception.Message) -ForegroundColor Red
+                }
+            }
+        }
+        '4' {
+            Write-Host ' Dang mo lusrmgr.msc...' -ForegroundColor Gray
+            try {
+                Start-Process 'lusrmgr.msc'
+            } catch {
+                Write-Host ' Ban Windows Home khong ho tro giao dien lusrmgr.msc. Hay dung lenh net user.' -ForegroundColor Yellow
+            }
+        }
+        default {
+            Write-Host 'Quay lai menu.'
+        }
+    }
+    Write-Host '==========================================================================================='
+    Write-SessionLog 'Invoke-LocalUserAdmin completed'
+}
+
+function Invoke-RenamePC {
+    [CmdletBinding()]
+    param()
+    Write-SessionLog 'Invoke-RenamePC started'
+    Write-Host '===========================================================================================' -ForegroundColor Cyan
+    Write-Host '  DOI TEN MAY TINH (RENAME COMPUTER - CHUAN HOA THIET BI IT)' -ForegroundColor Cyan
+    Write-Host '==========================================================================================='
+    Write-Host (' Ten may hien tai: {0}' -f $env:COMPUTERNAME) -ForegroundColor Yellow
+    Write-Host ' Quy chuan ten: Toi da 15 ky tu, chi gom chu cai A-Z, chu so 0-9 va dau gach ngang (-).' -ForegroundColor Gray
+    Write-Host '-------------------------------------------------------------------------------------------'
+
+    $newName = Read-Host 'Nhap ten may tinh moi (hoac de trong de huy)'
+    if ([string]::IsNullOrWhiteSpace($newName)) {
+        Write-Host 'Da huy thao tac doi ten.' -ForegroundColor Yellow
+        return
+    }
+
+    $newName = $newName.Trim()
+    if ($newName.Length -gt 15 -or $newName -match '[^A-Za-z0-9-]') {
+        Write-Host ' Ten khong hop le (qua 15 ky tu hoac co ky tu dac biet). Da huy!' -ForegroundColor Red
+        return
+    }
+
+    $confirm = Read-Host ("Ban co chac muon doi ten may tu '$env:COMPUTERNAME' thanh '$newName'? (Y/N)")
+    if ($confirm -notmatch '^[Yy]') {
+        Write-Host 'Da huy thao tac.' -ForegroundColor Yellow
+        return
+    }
+
+    try {
+        Rename-Computer -NewName $newName -Force -ErrorAction Stop
+        Write-Host (' [THANH CONG] May tinh da duoc doi ten thanh: {0}' -f $newName) -ForegroundColor Green
+        Write-Host ' Luu y: Ten moi se co hieu luc sau khi may duoc khoi dong lai.' -ForegroundColor Cyan
+        $reboot = Read-Host 'Ban co muon khoi dong lai may tinh ngay bay gio khong? (Y/N)'
+        if ($reboot -match '^[Yy]') {
+            Write-Host ' May se khoi dong lai trong 10 giay...' -ForegroundColor Yellow
+            & shutdown.exe /r /t 10 /c "Doi ten may tinh thanh cong - Khoi dong lai he thong."
+        }
+    } catch {
+        Write-Host (' Loi khi doi ten may: {0}' -f $_.Exception.Message) -ForegroundColor Red
+    }
+    Write-Host '==========================================================================================='
+    Write-SessionLog ('Invoke-RenamePC completed. NewName: ' + $newName)
+}
+
+function Invoke-ToggleRDP {
+    [CmdletBinding()]
+    param()
+    Write-SessionLog 'Invoke-ToggleRDP started'
+    Write-Host '===========================================================================================' -ForegroundColor Cyan
+    Write-Host '  BAT / TAT REMOTE DESKTOP (RDP) VA MO CONG FIREWALL 3389' -ForegroundColor Cyan
+    Write-Host '==========================================================================================='
+
+    $rdpKey = 'HKLM:\System\CurrentControlSet\Control\Terminal Server'
+    $currentVal = 1
+    try {
+        $currentVal = (Get-ItemProperty -Path $rdpKey -Name 'fDenyTSConnections' -ErrorAction SilentlyContinue).fDenyTSConnections
+    } catch { }
+
+    if ($currentVal -eq 0) {
+        Write-Host ' Trang thai RDP hien tai: ' -NoNewline; Write-Host 'DANG BAT (Enabled)' -ForegroundColor Green
+    } else {
+        Write-Host ' Trang thai RDP hien tai: ' -NoNewline; Write-Host 'DANG TAT (Disabled)' -ForegroundColor Yellow
+    }
+
+    Write-Host '-------------------------------------------------------------------------------------------'
+    Write-Host ' [1] BAT Remote Desktop va MO cong Firewall 3389' -ForegroundColor Green
+    Write-Host ' [2] TAT Remote Desktop va DONG cong Firewall' -ForegroundColor Yellow
+    Write-Host ' [0] Quay lai'
+    Write-Host '-------------------------------------------------------------------------------------------'
+
+    $choice = Read-Host 'Chon thao tac [0-2]'
+    switch ($choice) {
+        '1' {
+            Write-Host ' Dang bat Remote Desktop qua Registry...' -ForegroundColor Gray
+            try {
+                Set-ItemProperty -Path $rdpKey -Name 'fDenyTSConnections' -Value 0 -Force
+                Set-ItemProperty -Path "$rdpKey\WinStations\RDP-Tcp" -Name 'UserAuthentication' -Value 1 -Force -ErrorAction SilentlyContinue
+                Write-Host ' Dang mo cong Remote Desktop tren Windows Firewall...' -ForegroundColor Gray
+                & netsh.exe advfirewall firewall set rule group="remote desktop" new enable=Yes 2>&1 | Out-Null
+                Write-Host ' [THANH CONG] Da BAT Remote Desktop va mo cong tuong lua.' -ForegroundColor Green
+                Write-Host (' IT co the ket noi toi IP cua may nay bang mstsc qua cong 3389.') -ForegroundColor Cyan
+            } catch {
+                Write-Host (' Loi: {0}' -f $_.Exception.Message) -ForegroundColor Red
+            }
+        }
+        '2' {
+            Write-Host ' Dang tat Remote Desktop...' -ForegroundColor Gray
+            try {
+                Set-ItemProperty -Path $rdpKey -Name 'fDenyTSConnections' -Value 1 -Force
+                & netsh.exe advfirewall firewall set rule group="remote desktop" new enable=No 2>&1 | Out-Null
+                Write-Host ' [THANH CONG] Da TAT Remote Desktop va khoa cong tuong lua.' -ForegroundColor Green
+            } catch {
+                Write-Host (' Loi: {0}' -f $_.Exception.Message) -ForegroundColor Red
+            }
+        }
+        default {
+            Write-Host 'Quay lai menu.'
+        }
+    }
+    Write-Host '==========================================================================================='
+    Write-SessionLog 'Invoke-ToggleRDP completed'
+}
+
 try {
     Write-SessionLog ('Started action: {0}' -f $Action)
     switch ($Action) {
@@ -1546,6 +1940,13 @@ try {
         'WiFiProfileBackup'     { Invoke-WiFiProfileBackup -Destination $WiFiFolder }
         'WiFiProfileRestore'    { Invoke-WiFiProfileRestore -SourceFolder $WiFiFolder }
         'DomainRepair'          { Invoke-DomainRepair }
+        'SearchFix'             { Invoke-SearchFix }
+        'DeepClean'             { Invoke-DeepClean }
+        'FastStartupToggle'     { Invoke-FastStartupToggle }
+        'LicenseCheck'          { Invoke-LicenseCheck }
+        'LocalUserAdmin'        { Invoke-LocalUserAdmin }
+        'RenamePC'              { Invoke-RenamePC }
+        'ToggleRDP'             { Invoke-ToggleRDP }
         'WindowsUpdate'         { Invoke-FocusedReport 'WindowsUpdate' { param($d) Save-SecurityUpdateDetails $d } }
         'Connectivity'          { Invoke-ConnectivityTest }
         'CaseNote'              { New-CaseNote }

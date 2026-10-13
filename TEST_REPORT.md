@@ -1,6 +1,15 @@
-# Báo cáo kiểm thử bản phát hành 2.3.0
+# Báo cáo kiểm thử bản phát hành 2.4.0
 
-## Nâng cấp toàn diện Helpdesk & Hạ tầng v2.3.0 (2026-10-13)
+## Kiểm thử phiên bản hoàn thiện v2.4.0 (2026-10-13)
+
+- **PowerShell AST & StrictMode 2.0:** Mô-đun `Syscare.WindowsTool.ps1` được phân tích cú pháp đạt **0 lỗi**. Các hàm mới `Invoke-SearchFix`, `Invoke-DeepClean`, `Invoke-FastStartupToggle`, `Invoke-LicenseCheck`, `Invoke-LocalUserAdmin`, `Invoke-RenamePC`, `Invoke-ToggleRDP` đều chạy độc lập an toàn, bẫy lỗi bằng `try/catch` và ghi nhận log phiên.
+- **Cấu trúc nhãn BAT:** Kiểm tra tự động 175 nhãn trong `Tool_Windows.bat` đạt **100% hợp lệ, 0 nhãn thiếu hoặc trỏ sai**.
+- **Kiểm thử thực thi thực tế (Live Execution on Windows):**
+  - `SearchFix`: Tự động dừng WSearch, ngắt tiến trình tìm kiếm, đặt startup Automatic và khởi động lại dịch vụ thành công trong 2 giây.
+  - `LicenseCheck`: Truy vấn chính xác trạng thái bản quyền Windows (VOLUME_MAK, Licensed, Partial key) và quét các thư mục cài đặt Office chuẩn.
+  - `Build-Release`: Tạo tự động `Invoke-JoITWindowsTool.ps1`, `index.html`, `checksums.sha256` và `release-manifest.json` cho bản phát hành `v2.4.0`.
+
+## Kết quả kiểm thử v2.3.0 (2026-10-13)
 
 - **PowerShell AST & StrictMode 2.0:** Mô-đun `Syscare.WindowsTool.ps1` được phân tích bằng `[System.Management.Automation.Language.Parser]::ParseFile` đạt **0 lỗi cú pháp**. Đã bổ sung cơ chế kiểm tra thuộc tính an toàn cho đối tượng TPM/WMI nhằm tương thích tuyệt đối cả Windows 10 và Windows 11 (PowerShell 5.1 & PowerShell 7+).
 - **Kiểm tra nhãn BAT:** Toàn bộ cấu trúc `Tool_Windows.bat` (154 nhãn) và hơn 450 tham chiếu `goto/call` đã được xác minh tự động, **0 nhãn bị thiếu hoặc trỏ sai**.

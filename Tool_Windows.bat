@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
 set "TOOL_NAME=SYSCARE WINDOWS TOOL"
-set "TOOL_VERSION=2.3.0"
+set "TOOL_VERSION=2.4.0"
 set "CORE_PS1=%~dp0Syscare.WindowsTool.ps1"
 title %TOOL_NAME% v%TOOL_VERSION% - SLA HELPDESK VA HA TANG
 color 0B
@@ -178,10 +178,12 @@ echo  [7] CHKDSK Online Scan           - Quet o he thong khi Windows dang chay
 echo  [8] CHKDSK Fix                   - Kiem tra/sua loi, co the hen lich khi khoi dong
 echo  [9] SUA LOI TOAN DIEN            - DISM RestoreHealth roi SFC ScanNow
 echo  [A] Mo thu muc log CBS va DISM
+echo  [B] Sua loi Windows Search/Start - Khoi dong lai WSearch va tien trinh Search
 echo  [0] Quay lai menu chinh
 echo ===========================================================================================
-choice /C 123456789A0 /N /M "Chon chuc nang: "
-if errorlevel 11 goto main
+choice /C 123456789AB0 /N /M "Chon chuc nang: "
+if errorlevel 12 goto main
+if errorlevel 11 goto repair_search_fix
 if errorlevel 10 goto repair_logs
 if errorlevel 9 goto repair_full
 if errorlevel 8 goto repair_chkdsk_fix
@@ -284,6 +286,10 @@ goto nav_repair
 call :log_action "repair_logs"
 start "" explorer.exe "%SystemRoot%\Logs"
 goto repair_menu
+
+:repair_search_fix
+call :run_core SearchFix
+goto nav_repair
 
 rem ----------------------------------------------------------------
 rem NHOM 2 - MANG VA INTERNET
@@ -445,10 +451,14 @@ echo  [8] Tao bao cao nang luong 60 giay    - xuat HTML ra Desktop
 echo  [9] Mo thu muc TEMP nguoi dung
 echo  [A] Mo Storage Settings
 echo  [B] Thong tin phan cung & Tai san     - Xuat 1 dong Ticket SLA va copy Clipboard
+echo  [C] Don dep he thong sau 1-Click      - Xoa sach Temp, Prefetch, Cache Update, RecycleBin
+echo  [D] Bat / Tat Fast Startup            - Khoi dong nhanh & Hibernation (sua loi sleep)
 echo  [0] Quay lai menu chinh
 echo ===========================================================================================
-choice /C 123456789AB0 /N /M "Chon chuc nang: "
-if errorlevel 12 goto main
+choice /C 123456789ABCD0 /N /M "Chon chuc nang: "
+if errorlevel 14 goto main
+if errorlevel 13 goto disk_fast_startup
+if errorlevel 12 goto disk_deep_clean
 if errorlevel 11 goto disk_asset_specs
 if errorlevel 10 goto disk_storage_settings
 if errorlevel 9 goto disk_temp
@@ -525,6 +535,14 @@ goto disk_menu
 
 :disk_asset_specs
 call :run_core AssetSpecs
+goto nav_disk
+
+:disk_deep_clean
+call :run_core DeepClean
+goto nav_disk
+
+:disk_fast_startup
+call :run_core FastStartupToggle
 goto nav_disk
 
 rem ----------------------------------------------------------------
@@ -739,7 +757,7 @@ echo  [5] Xem trang thai Windows Firewall
 echo  [6] Mo Windows Security
 echo  [7] Mo Windows Update
 echo  [8] Xem lich su hotfix/cap nhat da cai
-echo  [9] Kiem tra trang thai kich hoat Windows
+echo  [9] Kiem tra ban quyen Windows va Office - slmgr /xpr, /dli va Office ospp.vbs
 echo  [A] Mo Malicious Software Removal Tool     - MRT
 echo  [B] Kiem tra BitLocker va chip TPM         - manage-bde va Get-Tpm
 echo  [C] Trich xuat BitLocker Recovery Key      - Sao luu khoa 48 so ra tep TXT
@@ -820,10 +838,7 @@ echo.
 goto nav_security
 
 :security_activation
-call :log_action "security_activation"
-cls
-cscript.exe //nologo "%SystemRoot%\System32\slmgr.vbs" /xpr
-echo.
+call :run_core LicenseCheck
 goto nav_security
 
 :security_mrt
@@ -861,10 +876,15 @@ echo  [B] Sao luu Registry SYSTEM          [C] So sanh HKLM va HKCU Software
 echo  [D] Liet ke tat ca Services          [E] Xem Windows Edition hien tai
 echo  [F] Xem cac Target Edition           [G] Xem Reserved Storage Status
 echo  [H] Thong tin tai san 1 dong Ticket  [I] Quan ly mat khau da luu (keymgr)
+echo  [J] Quan ly User va Built-in Admin   [K] Mo Registry Editor (regedit)
+echo  [L] Mo Group Policy (gpedit.msc)
 echo  [0] Quay lai menu chinh
 echo ===========================================================================================
-choice /C 123456789ABCDEFGHI0 /N /M "Chon chuc nang: "
-if errorlevel 19 goto main
+choice /C 123456789ABCDEFGHIJKL0 /N /M "Chon chuc nang: "
+if errorlevel 22 goto main
+if errorlevel 21 goto admin_gpedit
+if errorlevel 20 goto admin_regedit
+if errorlevel 19 goto admin_local_users
 if errorlevel 18 goto admin_keymgr
 if errorlevel 17 goto admin_asset_specs
 if errorlevel 16 goto admin_reserved_storage
@@ -990,6 +1010,20 @@ call :log_action "admin_keymgr"
 start "" rundll32.exe keymgr.dll,KRShowKeyMgr
 goto admin_menu
 
+:admin_local_users
+call :run_core LocalUserAdmin
+goto nav_admin
+
+:admin_regedit
+call :log_action "admin_regedit"
+start "" regedit.exe
+goto admin_menu
+
+:admin_gpedit
+call :log_action "admin_gpedit"
+start "" gpedit.msc
+goto admin_menu
+
 rem ----------------------------------------------------------------
 rem NHOM 8 - MAY IN VA TIEN ICH
 rem ----------------------------------------------------------------
@@ -1014,10 +1048,14 @@ echo  [D] Xoa Cache Microsoft 365/Teams/Outlook - Sua loi treo ung dung, login l
 echo  [E] Sao luu Profile Wi-Fi ra tep XML      - netsh wlan export profile
 echo  [F] Khoi phuc Profile Wi-Fi tu tep XML    - netsh wlan add profile
 echo  [G] Mo quan ly chung thuc Windows         - Credential Manager / keymgr
+echo  [H] Doi ten may tinh (Rename Computer)    - Chuan hoa ten thiet bi IT
+echo  [I] Bat / Tat Remote Desktop (RDP)        - Mo/Dong Firewall cong 3389
 echo  [0] Quay lai menu chinh
 echo ===========================================================================================
-choice /C 123456789ABCDEFG0 /N /M "Chon chuc nang: "
-if errorlevel 17 goto main
+choice /C 123456789ABCDEFGHI0 /N /M "Chon chuc nang: "
+if errorlevel 19 goto main
+if errorlevel 18 goto utility_toggle_rdp
+if errorlevel 17 goto utility_rename_pc
 if errorlevel 16 goto utility_credential_manager
 if errorlevel 15 goto utility_wifi_restore
 if errorlevel 14 goto utility_wifi_backup
@@ -1177,6 +1215,14 @@ call :log_action "utility_credential_manager"
 start "" control.exe /name Microsoft.CredentialManager
 goto utilities_menu
 
+:utility_rename_pc
+call :run_core RenamePC
+goto nav_utilities
+
+:utility_toggle_rdp
+call :run_core ToggleRDP
+goto nav_utilities
+
 rem ----------------------------------------------------------------
 rem NHOM A - SLA QUICK TRIAGE
 rem ----------------------------------------------------------------
@@ -1273,10 +1319,14 @@ echo  [6] Khoi dong lai Windows Explorer     - Taskbar/Desktop mat vai giay
 echo  [7] Sua loi quan he tin cay Domain     - Test-ComputerSecureChannel -Repair
 echo  [8] Xoa Cache Microsoft 365/Teams      - Sua loi treo ung dung, login loop
 echo  [9] Mo quan ly chung thuc Windows      - Credential Manager / keymgr
+echo  [A] Don dep he thong sau 1-Click        - Xoa Temp, Prefetch, Cache o C:
+echo  [B] Sua loi Windows Search va Start     - Khoi dong lai WSearch
 echo  [0] Quay lai SLA Quick Triage
 echo ===========================================================================================
-choice /C 1234567890 /N /M "Chon chuc nang: "
-if errorlevel 10 goto sla_menu
+choice /C 123456789AB0 /N /M "Chon chuc nang: "
+if errorlevel 12 goto sla_menu
+if errorlevel 11 goto sla_fix_search
+if errorlevel 10 goto sla_fix_deep_clean
 if errorlevel 9 goto sla_fix_keymgr
 if errorlevel 8 goto sla_fix_office_cache
 if errorlevel 7 goto sla_fix_domain
@@ -1345,6 +1395,14 @@ goto nav_sla_fix
 call :log_action "sla_fix_keymgr"
 start "" rundll32.exe keymgr.dll,KRShowKeyMgr
 goto sla_fix_menu
+
+:sla_fix_deep_clean
+call :run_core DeepClean
+goto nav_sla_fix
+
+:sla_fix_search
+call :run_core SearchFix
+goto nav_sla_fix
 
 rem ----------------------------------------------------------------
 rem NHOM 9 - BAO CAO VA BANG CHUNG

@@ -1,4 +1,4 @@
-# Syscare Windows Tool v2.3.0
+# Syscare Windows Tool v2.4.0
 
 Bộ công cụ hỗ trợ IT helpdesk và hạ tầng tại chỗ trên Windows 10/11, tối ưu cho thao tác nhanh, lưu bằng chứng xử lý và đáp ứng SLA. Menu chính vẫn chạy bằng BAT; các báo cáo chuyên sâu được thực hiện bởi mô-đun PowerShell đi kèm.
 
@@ -7,6 +7,17 @@ Lệnh sử dụng chính thức:
 ```powershell
 irm https://win.syscare.site | iex
 ```
+
+## Điểm mới của v2.4.0
+
+- **Sửa lỗi Windows Search & Start Menu (`[1]`, `[A]`):** Tự động restart dịch vụ `WSearch`, reset các tiến trình giao diện SearchHost/StartMenu khi ô Search trên Taskbar bị đơ.
+- **Dọn dẹp hệ thống sâu 1-Click (`[3]`, `[A]`):** Dọn dẹp an toàn Temp, Prefetch, SoftwareDistribution\Download và Thùng rác, tự động báo cáo số dung lượng GB/MB đã giải phóng.
+- **Bật / Tắt Fast Startup & Hibernation (`[3]`):** 1-Click Bật / Tắt Khởi động nhanh (`powercfg /h on|off`), khắc phục lỗi laptop nóng khi gập nắp, đen màn hình sau Sleep hoặc mất card mạng.
+- **Kiểm tra Bản quyền Chi tiết Windows & Office (`[6]`):** Tra cứu kênh License Windows (`slmgr /dli`), thời hạn (`slmgr /xpr`) và tự động kiểm tra bản quyền Microsoft Office (`ospp.vbs /dstatus`).
+- **Quản lý User & Built-in Administrator (`[7]`):** Bật/Tắt tài khoản Administrator tích hợp (`net user administrator /active:yes|no`), đổi mật khẩu user nhanh và mở `lusrmgr.msc`.
+- **Đổi tên máy tính chuẩn thiết bị IT (`[8]`):** Đổi tên máy (`Rename-Computer`) kiểm tra quy chuẩn NetBIOS kèm tùy chọn hẹn lịch reboot.
+- **Bật / Tắt Remote Desktop (RDP) & Mở cổng Firewall 3389 (`[8]`):** Cấu hình trực tiếp Registry và mở Firewall để IT có thể remote qua `mstsc`.
+- **Mở nhanh công cụ quản trị nâng cao (`[7]`):** Tích hợp phím tắt mở trực tiếp Registry Editor (`regedit.exe`) và Local Group Policy (`gpedit.msc`).
 
 ## Điểm mới của v2.3.0
 
@@ -174,10 +185,10 @@ Kết quả so sánh phải là `True`. Sau đó chạy BAT trực tiếp trên 
 ```powershell
 git status
 git add .
-git commit -m "Release v2.3.0 - Add Driver management, Asset specs, BitLocker, M365 cache and Domain repair"
+git commit -m "Release v2.4.0 - Add System Clean, Search fix, Fast Startup, License check, Local Users, Rename PC and RDP toggle"
 git push origin main
-git tag -a v2.3.0 -m "Syscare Windows Tool v2.3.0"
-git push origin v2.3.0
+git tag -a v2.4.0 -m "Syscare Windows Tool v2.4.0"
+git push origin v2.4.0
 ```
 
 Chờ workflow **pages build and deployment** thành công. Không sửa DNS, CNAME hoặc custom domain khi chỉ cập nhật tính năng.
@@ -185,9 +196,9 @@ Chờ workflow **pages build and deployment** thành công. Không sửa DNS, CN
 ### 5. Kiểm tra bản online
 
 ```powershell
-$url = 'https://win.syscare.site/?v=2.3.0'
+$url = 'https://win.syscare.site/?v=2.4.0'
 $online = [string](irm $url)
-$online | Select-String "ToolVersion = '2.3.0'"
+$online | Select-String "ToolVersion = '2.4.0'"
 irm $url | iex
 ```
 

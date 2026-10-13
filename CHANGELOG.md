@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.4.0 - 2026-10-13
+
+### Added
+
+- **Sửa lỗi Windows Search & Start Menu (`[1]`, `[A]`):**
+  - Tự động dừng dịch vụ `WSearch`, kết thúc các tiến trình tìm kiếm (`SearchHost.exe`, `SearchIndexer.exe`, `StartMenuExperienceHost.exe`, `ShellExperienceHost.exe`) và khởi động lại dịch vụ để sửa lỗi ô Search trên Taskbar bị đơ hoặc không gõ được.
+- **Dọn dẹp hệ thống sâu 1-Click (Deep System Clean - `[3]`, `[A]`):**
+  - Quét và dọn dẹp sạch sẽ: `%TEMP%` người dùng, `C:\Windows\Temp`, `Prefetch`, bộ nhớ đệm cập nhật `SoftwareDistribution\Download` và Thùng rác (Recycle Bin).
+  - Tự động đo lường và hiển thị dung lượng đĩa C: đã được giải phóng (tính bằng MB/GB).
+- **Bật / Tắt Fast Startup & Hibernation (`[3]`):**
+  - Hỗ trợ kiểm tra và 1-click Bật / Tắt tính năng Khởi động nhanh (`powercfg /h off` & `powercfg /h on`), giải phóng file `hiberfil.sys` và khắc phục triệt để lỗi laptop nóng máy khi gập nắp, đen màn hình sau Sleep hoặc mất card mạng.
+- **Kiểm tra Bản quyền Chi tiết Windows & Microsoft Office (`[6]`):**
+  - Kiểm tra kênh bản quyền Windows (`slmgr /dli` - OEM, Retail, Volume/KMS) và thời hạn kích hoạt (`slmgr /xpr`).
+  - Tự động quét và chạy `ospp.vbs /dstatus` trên các phiên bản Microsoft Office (Office 16, 15, 14 cả 32-bit & 64-bit) để hiển thị trạng thái License và số ngày còn lại.
+- **Quản lý Tài khoản Cục bộ & Built-in Administrator (`[7]`):**
+  - Liệt kê tài khoản cục bộ, 1-Click Bật / Tắt tài khoản `Administrator` tích hợp (`net user administrator /active:yes|no`), đổi mật khẩu tài khoản và mở `lusrmgr.msc`.
+- **Đổi tên máy tính chuẩn thiết bị IT (Rename Computer - `[8]`):**
+  - Kiểm tra quy chuẩn tên máy (tối đa 15 ký tự, không ký tự đặc biệt), thực thi `Rename-Computer` và hỗ trợ hẹn giờ khởi động lại máy an toàn.
+- **Bật / Tắt Remote Desktop (RDP) & Mở cổng Firewall 3389 (`[8]`):**
+  - Bật/tắt RDP trực tiếp qua Registry (`fDenyTSConnections`) và tự động bật/tắt nhóm rule Firewall cho phép kết nối `mstsc` qua cổng 3389.
+- **Mở nhanh công cụ quản trị nâng cao (`[7]`):**
+  - Tích hợp phím tắt mở trực tiếp Registry Editor (`regedit.exe`) và Local Group Policy Editor (`gpedit.msc`).
+
 ## 2.3.0 - 2026-10-13
 
 ### Added
