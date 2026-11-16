@@ -1077,25 +1077,43 @@ goto utilities_menu
 :printer_assist_menu
 cls
 echo ===========================================================================================
-echo  TRO LY MAY IN VA SCAN - KIEM TRA TRUOC KHI SUA
+echo  TRO LY MAY IN VA SCAN - SUA LOI TOSHIBA, SMB, RPC VA SPOOLER
 echo ===========================================================================================
-echo  [1] May in cam USB truc tiep      - driver, USB/PnP, queue, Spooler
-echo  [2] May in chia se qua PC/server - hostname, TCP 445/135, ket noi va queue
-echo  [3] May in co IP rieng          - IP, port 9100/515/631, driver va queue
-echo  [4] Scan-to-folder qua SMB      - server, TCP 445, UNC va quyen truy cap
-echo  [5] Sua queue cua MOT may in    - XOA LENH IN cua may duoc chon
-echo  [6] Khoi dong lai Spooler       - Anh huong cac hang doi tren may nay
+echo  [1] Chuan doan & Ket noi Scan Toshiba (2508A 10.6.0.26 va 3515AC 10.6.0.25)
+echo  [2] Cau hinh SMB Signing, Guest Logon va SMB 1.0 (Bat/Tat ky so, sua loi SMB)
+echo  [3] 1-Click Sua loi chia se may in mang 0x0000011b, 0x00000709 (RPC Print Fix)
+echo  [4] Scan-to-folder tuy chon qua SMB (Nhap IP/Hostname khac)
+echo  [5] May in cam USB truc tiep      - driver, USB/PnP, queue, Spooler
+echo  [6] May in chia se qua PC/server - hostname, TCP 445/135, ket noi va queue
+echo  [7] May in co IP rieng          - IP, port 9100/515/631, driver va queue
+echo  [8] Xoa hang doi (Queue) cua mot may in bi ket
+echo  [9] Khoi dong lai Spooler cuc bo tren may nay
 echo  [0] Ve nhom may in va tien ich
 echo ===========================================================================================
-choice /C 1234560 /N /M "Chon [0-6]: "
-if errorlevel 7 goto utilities_menu
-if errorlevel 6 goto printer_assist_spooler
-if errorlevel 5 goto printer_assist_queue
+choice /C 1234567890 /N /M "Chon [0-9]: "
+if errorlevel 10 goto utilities_menu
+if errorlevel 9 goto printer_assist_spooler
+if errorlevel 8 goto printer_assist_queue
+if errorlevel 7 goto printer_assist_ip
+if errorlevel 6 goto printer_assist_shared
+if errorlevel 5 goto printer_assist_usb
 if errorlevel 4 goto printer_assist_scan
-if errorlevel 3 goto printer_assist_ip
-if errorlevel 2 goto printer_assist_shared
-if errorlevel 1 goto printer_assist_usb
+if errorlevel 3 goto printer_assist_rpc_fix
+if errorlevel 2 goto printer_assist_smb_config
+if errorlevel 1 goto printer_assist_toshiba
 goto printer_assist_menu
+
+:printer_assist_toshiba
+call :run_core ToshibaScanSuite
+goto nav_printer_assist
+
+:printer_assist_smb_config
+call :run_core SmbSecurityConfig
+goto nav_printer_assist
+
+:printer_assist_rpc_fix
+call :run_core RpcPrintFix
+goto nav_printer_assist
 
 :printer_assist_usb
 call :run_core PrinterUsb

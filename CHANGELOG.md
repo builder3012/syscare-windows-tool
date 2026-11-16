@@ -4,6 +4,21 @@
 
 ### Added
 
+- **Chuyên đề Sửa lỗi Máy in, Scan-to-folder SMB và Ký số (Toshiba e-STUDIO & Windows 10/11 - `[8] -> [C]`):**
+  - **Chẩn đoán & Kết nối Thư mục Scan Toshiba (`[8] -> [C] -> [1]`):**
+    - Hỗ trợ chuyên biệt cặp máy in công ty: e-STUDIO 3515AC (Máy màu - `10.6.0.25`) và e-STUDIO 2508A (Máy trắng đen - `10.6.0.26`).
+    - Tự động kiểm tra TCP 445, đối soát trạng thái `RequireSecuritySignature` và `EnableInsecureGuestLogons`.
+    - Đồng bộ tự động thông tin chứng thực (`cmdkey`) cho tài khoản `scan` / `@@6868`.
+    - Quét Event Log bảo mật `Microsoft-Windows-SmbClient/Security` (Event 31017, 31001) để chỉ điểm ngay nguyên nhân máy trắng đen 2508A chưa bật ký số SMB trong TopAccess.
+    - Cung cấp hướng dẫn IT từng bước cấu hình TopAccess chuẩn trên máy 2508A và tùy chọn tạm tắt ký số để truy cập khẩn cấp.
+  - **Quản lý Cấu hình SMB Client & Giao thức SMB 1.0/2.0/3.0 (`[8] -> [C] -> [2]`):**
+    - 1-Click Bật / Tắt bắt buộc Ký số SMB (`RequireSecuritySignature = True/False`).
+    - 1-Click Cho phép / Chặn đăng nhập Guest (`EnableInsecureGuestLogons = True/False`).
+    - 1-Click Bật / Tắt giao thức `SMB1Protocol-Client` cho các dòng máy scan/NAS đời cũ.
+    - Xóa sạch kết nối SMB/IPC$ bị kẹt (`net use * /delete /y`).
+  - **1-Click Sửa lỗi Chia sẻ Máy in Mạng LAN 0x0000011b, 0x00000709 (`[8] -> [C] -> [3]`):**
+    - Tự động sửa lỗi RPC Print Restriction (`RpcAuthnLevelPrivacyEnabled = 0`).
+    - Sửa lỗi RPC over Named Pipes và Point and Print Policies trên Windows 10 và Windows 11 (22H2/24H2), khởi động lại Print Spooler an toàn.
 - **Sửa lỗi Windows Search & Start Menu (`[1]`, `[A]`):**
   - Tự động dừng dịch vụ `WSearch`, kết thúc các tiến trình tìm kiếm (`SearchHost.exe`, `SearchIndexer.exe`, `StartMenuExperienceHost.exe`, `ShellExperienceHost.exe`) và khởi động lại dịch vụ để sửa lỗi ô Search trên Taskbar bị đơ hoặc không gõ được.
 - **Dọn dẹp hệ thống sâu 1-Click (Deep System Clean - `[3]`, `[A]`):**

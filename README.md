@@ -10,6 +10,9 @@ irm https://win.syscare.site | iex
 
 ## Điểm mới của v2.4.0
 
+- **Trợ lý Scan-to-Folder SMB Toshiba & Ký số (`[8] -> [C] -> [1]`):** Hỗ trợ chuẩn hóa kết nối thư mục scan cho cặp máy in công ty Toshiba e-STUDIO 3515AC (10.6.0.25) và 2508A (10.6.0.26) với tài khoản `scan` / `@@6868`. Tự động đối soát `RequireSecuritySignature`, `EnableInsecureGuestLogons`, tự động nạp Credential qua `cmdkey` và phân tích Event Log `Microsoft-Windows-SmbClient/Security` (Event 31017, 31001) chỉ ra lý do máy trắng đen 2508A chưa bật ký số trong TopAccess.
+- **Quản lý SMB Client, Ký số & SMB 1.0/2.0 (`[8] -> [C] -> [2]`):** 1-Click Bật/Tắt bắt buộc ký số SMB (`RequireSecuritySignature`), Cho phép/Chặn đăng nhập Guest, và Bật/Tắt tính năng `SMB1Protocol-Client` cho các dòng máy in/scan đời cũ.
+- **Sửa lỗi Chia sẻ Máy in Mạng LAN 0x0000011b, 0x00000709 (`[8] -> [C] -> [3]`):** 1-Click cấu hình Registry `RpcAuthnLevelPrivacyEnabled = 0`, RPC over Named Pipes và Point and Print Policies trên Windows 10/11, restart Spooler giải quyết dứt điểm lỗi không kết nối được máy in chia sẻ.
 - **Sửa lỗi Windows Search & Start Menu (`[1]`, `[A]`):** Tự động restart dịch vụ `WSearch`, reset các tiến trình giao diện SearchHost/StartMenu khi ô Search trên Taskbar bị đơ.
 - **Dọn dẹp hệ thống sâu 1-Click (`[3]`, `[A]`):** Dọn dẹp an toàn Temp, Prefetch, SoftwareDistribution\Download và Thùng rác, tự động báo cáo số dung lượng GB/MB đã giải phóng.
 - **Bật / Tắt Fast Startup & Hibernation (`[3]`):** 1-Click Bật / Tắt Khởi động nhanh (`powercfg /h on|off`), khắc phục lỗi laptop nóng khi gập nắp, đen màn hình sau Sleep hoặc mất card mạng.
