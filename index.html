@@ -6,7 +6,7 @@
     Extracts the signed-release BAT and PowerShell diagnostics module, verifies
     SHA-256 for both payloads, requests Administrator rights and starts the menu.
     Official URL: https://win.syscare.site
-    Generated UTC: 2026-11-17T08:29:16Z
+    Generated UTC: 2026-11-17T08:52:16Z
 #>
 [CmdletBinding()]
 param()

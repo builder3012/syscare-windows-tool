@@ -20,7 +20,7 @@
     - Giao diện console hiện đại chạy thuần PowerShell với hỗ trợ 100% tiếng Việt UTF-8 có dấu chuẩn Unicode và bảng màu ANSI VT100.
     - Nạp toàn bộ hàm chức năng vào bộ nhớ phiên, triệt tiêu độ trễ khởi tạo tiến trình con (`powershell.exe -Command`) từ file BAT cũ; tốc độ phản hồi cực nhanh (<10ms).
     - Tích hợp thanh thông tin thiết bị thời gian thực (ComputerName, User, Domain, Phiên bản Windows, Quyền Administrator).
-    - Tạo launcher thông minh `00_RUN_ADMIN_FULL.bat` với cơ chế tự động nâng quyền UAC và cho phép người dùng chọn chạy Modern PowerShell TUI hoặc Menu CMD BAT cổ điển.
+    - Xác lập `Tool_Windows.bat` là tệp chạy chính (chạy với quyền Administrator), đảm bảo độ tương thích tuyệt đối và không gây nhầm lẫn.
     - Bổ sung phím tắt `[P]` ngay tại menu chính của `Tool_Windows.bat` để chuyển đổi mượt mà sang Modern TUI bất kỳ lúc nào.
   - **Đóng gói Bản chạy Ngoại tuyến Độc lập (Offline Air-Gapped Portable USB Edition):**
     - Tự động đóng gói bản Portable zip độc lập `Syscare-Windows-Tool-v2.4.0.zip` chứa đầy đủ mã nguồn BAT, PowerShell TUI, Core diagnostics và tài liệu hướng dẫn.

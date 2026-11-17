@@ -186,7 +186,6 @@ if (Test-Path -LiteralPath $stagingDir) { Remove-Item -LiteralPath $stagingDir -
 [void][IO.Directory]::CreateDirectory($stagingDir)
 
 $portableFiles = @(
-    '00_RUN_ADMIN_FULL.bat',
     'Tool_Windows.bat',
     'Syscare.WindowsTool.ps1',
     'Syscare.Console.ps1',
@@ -208,7 +207,6 @@ Write-Host "Tao goi Offline Portable Air-Gapped USB thanh cong: $zipName" -Foreg
 
 $releaseFiles = @(
     '.nojekyll',
-    '00_RUN_ADMIN_FULL.bat',
     'AUDIT_REPORT.md',
     'Build-Release.mjs',
     'Build-Release.ps1',

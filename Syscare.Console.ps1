@@ -19,7 +19,7 @@ $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIden
 if (-not $isAdmin) {
     Write-Host "Đang yêu cầu nâng quyền Administrator (UAC)..." -ForegroundColor Yellow
     try {
-        Start-Process powershell.exe -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -File `"{0}`"" -f $MyInvocation.MyCommand.Path) -Verb RunAs
+        Start-Process powershell.exe -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $MyInvocation.MyCommand.Path) -Verb RunAs
         exit 0
     } catch {
         Write-Host "Cần cấp quyền Administrator để chạy công cụ." -ForegroundColor Red
