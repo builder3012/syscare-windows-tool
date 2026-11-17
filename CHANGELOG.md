@@ -7,18 +7,32 @@
 - **Chuyên đề Sửa lỗi Máy in, Scan-to-folder SMB và Ký số (Toshiba e-STUDIO & Windows 10/11 - `[8] -> [C]`):**
   - **Chẩn đoán & Kết nối Thư mục Scan Toshiba (`[8] -> [C] -> [1]`):**
     - Hỗ trợ chuyên biệt cặp máy in công ty: e-STUDIO 3515AC (Máy màu - `10.6.0.25`) và e-STUDIO 2508A (Máy trắng đen - `10.6.0.26`).
-    - Tự động kiểm tra TCP 445, đối soát trạng thái `RequireSecuritySignature` và `EnableInsecureGuestLogons`.
-    - Đồng bộ tự động thông tin chứng thực (`cmdkey`) cho tài khoản `scan` / `@@6868`.
-    - Quét Event Log bảo mật `Microsoft-Windows-SmbClient/Security` (Event 31017, 31001) để chỉ điểm ngay nguyên nhân máy trắng đen 2508A chưa bật ký số SMB trong TopAccess.
-    - Cung cấp hướng dẫn IT từng bước cấu hình TopAccess chuẩn trên máy 2508A và tùy chọn tạm tắt ký số để truy cập khẩn cấp.
+    - Bổ sung bảng đối chiếu cấu hình an toàn vs tương thích chuẩn Microsoft Security Baseline: `SMB Signing` (Client), `Insecure Guest Logon`, và tính năng `SMB1Protocol-Client`.
+    - Tự động kiểm tra TCP 445, đồng bộ thông tin chứng thực (`cmdkey`) cho user `scan` / `@@6868`.
+    - Tự động kích hoạt phiên SMB live và hiển thị trực quan phiên kết nối qua `Get-SmbConnection` với phiên bản giao thức (`Dialect`, ví dụ SMB 3.1.1) và trạng thái ký số (`Signed = True/False`).
+    - Phân tích chuyên sâu nguyên nhân lỗi `"The specified network name is no longer available"`: (1) Máy 2508A firmware cũ chỉ hỗ trợ SMB 1.0; (2) Chưa bật ký số `SMB Signing of SMB Server = If client agrees` trong TopAccess khiến phiên bị đóng khi Windows 11 yêu cầu ký; (3) Phân quyền tài khoản `scan` trên share `file_share`.
+    - Trích xuất 15 sự kiện bảo mật SMB gần nhất (30 phút qua) từ `Microsoft-Windows-SmbClient/Security`, tự động bắt lỗi Event 31017 (lỗi ký số) và Event 31001 (lỗi chặn Guest).
+    - Cung cấp 2 Preset 1-Click: **Khôi phục chuẩn bảo mật cao Microsoft** (`RequireSecuritySignature = True`, `EnableInsecureGuestLogons = False`) và **Hạ cấu hình chế độ tương thích** (`RequireSecuritySignature = False`, `EnableInsecureGuestLogons = True`).
+    - Hướng dẫn IT từng bước cấu hình TopAccess chuẩn trên máy 2508A và 3515AC.
   - **Quản lý Cấu hình SMB Client & Giao thức SMB 1.0/2.0/3.0 (`[8] -> [C] -> [2]`):**
-    - 1-Click Bật / Tắt bắt buộc Ký số SMB (`RequireSecuritySignature = True/False`).
-    - 1-Click Cho phép / Chặn đăng nhập Guest (`EnableInsecureGuestLogons = True/False`).
-    - 1-Click Bật / Tắt giao thức `SMB1Protocol-Client` cho các dòng máy scan/NAS đời cũ.
+    - 1-Click Áp dụng Preset Bảo mật cao (Signing = True, InsecureGuest = False) chuẩn Microsoft.
+    - 1-Click Áp dụng Preset Tương thích (Signing = False, InsecureGuest = True) cho máy in / scan cũ.
+    - 1-Click Bật / Tắt riêng lẻ Bắt buộc Ký số SMB (`RequireSecuritySignature`).
+    - 1-Click Bật / Tắt riêng lẻ Đăng nhập Guest (`EnableInsecureGuestLogons`).
+    - 1-Click Bật / Tắt giao thức `SMB1Protocol-Client` (hỗ trợ kiểm tra trạng thái online).
+    - Hiển thị trực tiếp phiên SMB hiện hành (`Get-SmbConnection: Dialect, Signed`) và xem 15 log sự kiện bảo mật SMB gần nhất.
     - Xóa sạch kết nối SMB/IPC$ bị kẹt (`net use * /delete /y`).
   - **1-Click Sửa lỗi Chia sẻ Máy in Mạng LAN 0x0000011b, 0x00000709 (`[8] -> [C] -> [3]`):**
     - Tự động sửa lỗi RPC Print Restriction (`RpcAuthnLevelPrivacyEnabled = 0`).
     - Sửa lỗi RPC over Named Pipes và Point and Print Policies trên Windows 10 và Windows 11 (22H2/24H2), khởi động lại Print Spooler an toàn.
+- **Quản lý Cloud Identity, Entra ID, PRT Token & Intune (Microsoft 365 - `[7] -> [M]`, `[A] -> [C]`, `[A] -> [8] -> [C]`):**
+  - Chẩn đoán tình trạng danh tính thiết bị đa tầng: `AzureAdJoined`, `EnterpriseJoined`, `DomainJoined`, `WorkplaceJoined`, DeviceId, TenantId và TenantName thông qua `dsregcmd /status`.
+  - Giám sát sức khỏe SSO và trạng thái **AzureAdPrt (Primary Refresh Token)**, `AzureAdPrtAuthority`, `WamDefaultSet`, phát hiện và chỉ điểm mã lỗi Client ErrorCode (ví dụ `0x801c001d`).
+  - Tự động nhận diện thiết bị quản lý qua Intune / MDM (`HKLM:\SOFTWARE\Microsoft\Enrollments`), đọc UPN và Discovery Service URL; giải thích rõ cho quản trị viên khi gói Office 365 Business Standard chưa kích hoạt Intune Plan 1.
+  - 1-Click Kích hoạt Đồng bộ Chính sách Thiết bị Intune / MDM (`DeviceEnroller.exe /c /urmgred`).
+  - 1-Click Khắc phục triệt để lỗi Blank Screen / Vòng lặp đăng nhập (Login Loop) / Tam giác vàng "Need Password" trên Outlook và Microsoft 365: Đăng ký lại gói ứng dụng `Microsoft.AAD.BrokerPlugin` và làm sạch bộ nhớ đệm TokenBroker.
+  - Phím tắt mở nhanh cài đặt liên kết tài khoản cơ quan (`ms-settings:workplace`).
+  - 1-Click Xuất toàn bộ báo cáo chẩn đoán `dsregcmd /status` chi tiết ra tệp văn bản UTF-8 trên Desktop và mở tự động bằng Notepad.
 - **Sửa lỗi Windows Search & Start Menu (`[1]`, `[A]`):**
   - Tự động dừng dịch vụ `WSearch`, kết thúc các tiến trình tìm kiếm (`SearchHost.exe`, `SearchIndexer.exe`, `StartMenuExperienceHost.exe`, `ShellExperienceHost.exe`) và khởi động lại dịch vụ để sửa lỗi ô Search trên Taskbar bị đơ hoặc không gõ được.
 - **Dọn dẹp hệ thống sâu 1-Click (Deep System Clean - `[3]`, `[A]`):**

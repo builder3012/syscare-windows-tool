@@ -10,7 +10,8 @@ param(
         'DriverBackup', 'DriverRestore', 'DriverUninstall', 'DriverAutoScan',
         'AssetSpecs', 'BitLockerStatus', 'BitLockerBackupKey',
         'ClearOfficeCache', 'WiFiProfileBackup', 'WiFiProfileRestore', 'DomainRepair',
-        'SearchFix', 'DeepClean', 'FastStartupToggle', 'LicenseCheck', 'LocalUserAdmin', 'RenamePC', 'ToggleRDP'
+        'SearchFix', 'DeepClean', 'FastStartupToggle', 'LicenseCheck', 'LocalUserAdmin', 'RenamePC', 'ToggleRDP',
+        'CloudIdentity'
     )]
     [string] $Action,
 
@@ -667,14 +668,27 @@ function Invoke-ToshibaScanSuite {
     if ($res26 -eq 'OPEN') { Write-Host 'KET NOI TOT (TCP 445 Open)' -ForegroundColor Green }
     else { Write-Host ("KHONG KET NOI DUOC ({0})" -f $res26) -ForegroundColor Red }
 
-    # 2. Kiem tra chinh sach SMB Client cua may tinh
+    # 2. Kiem tra chinh sach SMB Client cua may tinh & SMB1
     Write-Host ' [2/6] Kiem tra chinh sach bao mat SMB Client tren may tinh...' -ForegroundColor Gray
     $smbConf = Get-SmbClientConfiguration -ErrorAction SilentlyContinue
     $reqSign = if ($smbConf) { [bool]$smbConf.RequireSecuritySignature } else { $false }
     $guestLogon = if ($smbConf) { [bool]$smbConf.EnableInsecureGuestLogons } else { $true }
 
-    Write-Host ('  - Bat buoc Ky so SMB (RequireSecuritySignature) : {0}' -f $(if ($reqSign) { 'DANG BAT (True - Yeu cau may in phai ky so)' } else { 'DANG TAT (False - Chap nhan may in khong ky)' })) -ForegroundColor $(if ($reqSign) { 'Yellow' } else { 'White' })
-    Write-Host ('  - Cho phep Guest (EnableInsecureGuestLogons)     : {0}' -f $(if ($guestLogon) { 'DANG CHO PHEP (True)' } else { 'DANG CHAN (False - Chuan an toan)' })) -ForegroundColor $(if ($guestLogon) { 'White' } else { 'Green' })
+    $smb1State = 'Khong ro'
+    try {
+        $f = Get-WindowsOptionalFeature -Online -FeatureName SMB1Protocol-Client -ErrorAction SilentlyContinue
+        if ($f) { $smb1State = [string]$f.State }
+    } catch { }
+
+    Write-Host '  BANG DOI CHIEU CAU HINH AN TOAN VS TUONG THICH (MICROSOFT SECURITY BASELINE):' -ForegroundColor Cyan
+    Write-Host '  +-----------------------------+---------------+-------------------+-------------------+' -ForegroundColor Gray
+    Write-Host '  | Thanh phan kiem tra         | Hien tai may  | Muc tieu An toan  | Che do Tuong thich|' -ForegroundColor Gray
+    Write-Host '  |                             | tinh (Client) | (Khuyen nghi MS)  | (May in 2508A cu) |' -ForegroundColor Gray
+    Write-Host '  +-----------------------------+---------------+-------------------+-------------------+' -ForegroundColor Gray
+    Write-Host ('  | SMB Signing (Client)        | {0,-13} | True (Bat buoc)   | False (Khong bat) |' -f $(if ($reqSign) { 'True' } else { 'False' }))
+    Write-Host ('  | Insecure Guest Logon        | {0,-13} | False (Chan Guest)| True (Cho phep)   |' -f $(if ($guestLogon) { 'True' } else { 'False' }))
+    Write-Host ('  | Giao thuc SMB 1.0 Client    | {0,-13} | Disabled (Tat)    | Enabled (Khi can) |' -f $smb1State)
+    Write-Host '  +-----------------------------+---------------+-------------------+-------------------+' -ForegroundColor Gray
 
     # 3. Tu dong nap Credential vao Windows Credential Manager
     Write-Host ' [3/6] Tu dong dong bo thong tin chung thuc (Credential) cho 2 may in...' -ForegroundColor Gray
@@ -696,43 +710,53 @@ function Invoke-ToshibaScanSuite {
     Write-Host ('  - Truc tiep \\10.6.0.25\file_share : {0}' -f $(if ($ok25) { 'TRUY CAP THANH CONG' } else { 'THAT BAI (Loi phan quyen / SMB)' })) -ForegroundColor $(if ($ok25) { 'Green' } else { 'Red' })
     Write-Host ('  - Truc tiep \\10.6.0.26\file_share : {0}' -f $(if ($ok26) { 'TRUY CAP THANH CONG' } else { 'THAT BAI (Loi phan quyen / SMB)' })) -ForegroundColor $(if ($ok26) { 'Green' } else { 'Red' })
 
-    # 5. Kiem tra phien SMB dang ket noi
-    Write-Host ' [5/6] Trang thai phien SMB hien hanh...' -ForegroundColor Gray
-    $sessions = @(Get-SmbConnection -ErrorAction SilentlyContinue | Where-Object { $_.ServerName -in @('10.6.0.25', '10.6.0.26') })
+    # 5. Kiem tra phien SMB dang ket noi (thu kich hoat phien neu can)
+    Write-Host ' [5/6] Trang thai phien SMB hien hanh (Dialect & Signed)...' -ForegroundColor Gray
+    try { [IO.Directory]::GetFiles('\\10.6.0.25\file_share') | Out-Null } catch { }
+    try { [IO.Directory]::GetFiles('\\10.6.0.26\file_share') | Out-Null } catch { }
+
+    $sessions = @(Get-SmbConnection -ErrorAction SilentlyContinue | Where-Object { $_.ServerName -in @('10.6.0.25', '10.6.0.26', 'filesvr') -or $_.ShareName -match 'file_share' })
     if ($sessions.Count -gt 0) {
         $sessions | Select-Object ServerName, ShareName, Dialect, Signed | Format-Table -AutoSize | Out-String | ForEach-Object { Write-Host $_.TrimEnd() -ForegroundColor Cyan }
     } else {
-        Write-Host '  (Chua co phien SMB nao dang mo toi 10.6.0.25 hoac 10.6.0.26 trong session nay)' -ForegroundColor Gray
+        Write-Host '  (Chua co phien SMB live nao. Neu vua khoi dong hoac chua vao thu muc, hay chon muc [1] hoac [2] de mo)' -ForegroundColor Gray
     }
 
-    # 6. Phan tich Event Log SMB Client gan day
-    Write-Host ' [6/6] Phan tich log loi SMB Client Security...' -ForegroundColor Gray
+    # 6. Phan tich Event Log SMB Client gan day (30 phut qua)
+    Write-Host ' [6/6] Phan tich log loi SMB Client Security (30 phut gan nhat)...' -ForegroundColor Gray
     try {
-        $events = Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-SmbClient/Security'; StartTime = (Get-Date).AddHours(-4) } -ErrorAction SilentlyContinue | Select-Object -First 10
+        $events = Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-SmbClient/Security'; StartTime = (Get-Date).AddMinutes(-30) } -ErrorAction SilentlyContinue | Select-Object -First 15
         $foundSignError = $false
         $foundGuestError = $false
-        if ($events) {
+        if ($events -and $events.Count -gt 0) {
+            Write-Host ('  Phat hien {0} su kien SMB Security trong 30 phut qua:' -f $events.Count) -ForegroundColor Yellow
             foreach ($ev in $events) {
                 if ($ev.Id -eq 31017 -or "$($ev.Message)" -match 'signing') { $foundSignError = $true }
                 if ($ev.Id -eq 31001 -or "$($ev.Message)" -match 'guest') { $foundGuestError = $true }
+                Write-Host ('  - [{0}] Event ID: {1} | {2}' -f $ev.TimeCreated.ToString('HH:mm:ss'), $ev.Id, ($ev.Message -split "`r?`n")[0]) -ForegroundColor $(if ($ev.Id -in 31017, 31001) { 'Red' } else { 'Gray' })
             }
+        } else {
+            Write-Host '  (Khong co su kien chan bao mat SMB nao trong 30 phut qua)' -ForegroundColor Green
         }
+
         if ($foundSignError) {
-            Write-Host '  [PHAT HIEN NGUYEN NHAN] Phat hien Event 31017: May in tu choi ket noi do CHUA BAT KY SO (SMB Signing) tren may in trong khi Windows bat buoc ky so!' -ForegroundColor Red
+            Write-Host '  [NGUYEN NHAN] Phat hien Event 31017: May in tu choi ket noi vi CHUA BAT KY SO (SMB Signing) tren may in trong khi Windows bat buoc ky so!' -ForegroundColor Red
         }
         if ($foundGuestError) {
-            Write-Host '  [PHAT HIEN NGUYEN NHAN] Phat hien Event 31001: Ket noi bi chan vi may in gui yeu cau dang nhap Guest khong an toan!' -ForegroundColor Red
+            Write-Host '  [NGUYEN NHAN] Phat hien Event 31001: Ket noi bi chan vi may in gui yeu cau dang nhap Guest khong an toan!' -ForegroundColor Red
         }
     } catch { }
 
-    # GIAI THICH NGUYEN NHAN VA HUONG DAN
+    # GIAI THICH CHUYEN SAU VA NGUYEN NHAN LOI NETWORK NAME IS NO LONGER AVAILABLE
     Write-Host '-------------------------------------------------------------------------------------------'
-    Write-Host ' GIAI THICH: VI SAO MAY MAU (10.6.0.25) VAO DUOC NHUNG MAY TRANG DEN (10.6.0.26) BI LOI?' -ForegroundColor Yellow
-    Write-Host '  1. May Mau (3515AC) da duoc bat "SMB Signing of SMB Server = If client agrees" trong TopAccess,'
-    Write-Host '     nen khi Windows bat buoc ky so (RequireSecuritySignature = True), may mau dong y ky so => Vao duoc.'
-    Write-Host '  2. May Trang Den (2508A) chua duoc bat "SMB Signing" (dang la Disable),'
-    Write-Host '     hoac chua tao user "scan" voi pass "@@6868", hoac van dang bat Guest Logon trong TopAccess.'
-    Write-Host '     Khi do, Windows 10/11 bat buoc ky so se chu dong NGAT KET NOI de bao ve an toan he thong!'
+    Write-Host ' GIAI THICH CHUYEN SAU: VI SAO MAY MAU (10.6.0.25) VAO DUOC NHUNG 2508A (10.6.0.26) BI LOI?' -ForegroundColor Yellow
+    Write-Host '  1. May Mau (3515AC) da bat "SMB Signing of SMB Server = If client agrees" trong TopAccess'
+    Write-Host '     va ho tro SMB 3.1.1, nen khi Windows 11 yeu cau ky so, may mau dong y ky => Ket noi hoan hao!'
+    Write-Host '  2. Neu May Trang Den (2508A) bao loi "The specified network name is no longer available":'
+    Write-Host '     - Kha nang A: Toshiba da tat Guest Logon nhung chua tao user "scan" / "@@6868" va chua phan quyen folder scan.'
+    Write-Host '     - Kha nang B: May 2508A chi ho tro SMB 1.0 (firmware cu) ma Windows 10/11 da tat tinh nang SMB1Protocol-Client.'
+    Write-Host '     - Kha nang C: May 2508A chua bat "SMB Signing of SMB Server = If client agrees", khi Windows 11 bat buoc ky'
+    Write-Host '       so (RequireSecuritySignature = True), may in se lap tuc chu dong dong ket noi (TCP Reset).'
     Write-Host '-------------------------------------------------------------------------------------------'
     Write-Host ' HUONG DAN IT CAU HINH TREN TOPACCESS CUA MAY TRANG DEN 2508A (CHI CAN LAM 1 LAN):' -ForegroundColor Cyan
     Write-Host '  Buoc 1: Mo trinh duyet vao: http://10.6.0.26 (Dang nhap Admin, pass thuong la 123456)'
@@ -749,13 +773,17 @@ function Invoke-ToshibaScanSuite {
     Write-Host ' [2] Mo thu muc scan May Trang Den (\\10.6.0.26\file_share) tren File Explorer'
     Write-Host ' [3] Mo trang quan tri TopAccess May Trang Den 2508A (http://10.6.0.26)'
     Write-Host ' [4] Mo trang quan tri TopAccess May Mau 3515AC (http://10.6.0.25)'
-    Write-Host ' [5] TAM THOI TAT BAT BUOC KY SO (RequireSecuritySignature = False) de vao gap may 2508A' -ForegroundColor Yellow
-    Write-Host ' [6] BAT LAI BAT BUOC KY SO AN TOAN (RequireSecuritySignature = True) - Chuan bao mat' -ForegroundColor Green
-    Write-Host ' [7] Reset toan bo ket noi SMB va nap lai Credential (net use * /delete & cmdkey)'
+    Write-Host ' [5] [MUC TIEU AN TOAN] Bat Ky so ($true) & Chan Guest ($false) - Chuan bao mat Microsoft' -ForegroundColor Green
+    Write-Host ' [6] [CHE DO TUONG THICH] Tat Ky so ($false) & Cho phep Guest ($true) - De vao gap may 2508A' -ForegroundColor Yellow
+    Write-Host ' [7] [KICH HOAT SMB1] Bat SMB 1.0 Client (Sua loi Network name is no longer available)' -ForegroundColor Magenta
+    Write-Host ' [8] [TAT SMB1] Tat SMB 1.0 Client (Khuyen nghi bao mat chong Ransomware)' -ForegroundColor Green
+    Write-Host ' [9] Kiem tra lai phien SMB (Get-SmbConnection: Dialect & Trinh ky Signed)' -ForegroundColor Cyan
+    Write-Host ' [A] Xem chi tiet 15 log loi SMB Client Security (Format-List)' -ForegroundColor Gray
+    Write-Host ' [B] Reset toan bo ket noi SMB va nap lai Credential (net use * /delete & cmdkey)' -ForegroundColor Cyan
     Write-Host ' [0] Quay lai'
     Write-Host '-------------------------------------------------------------------------------------------'
 
-    $subChoice = Read-Host 'Chon thao tac [0-7]'
+    $subChoice = Read-Host 'Chon thao tac [0-9, A, B]'
     switch ($subChoice) {
         '1' {
             Write-Host ' Dang mo thu muc scan may mau...' -ForegroundColor Gray
@@ -774,21 +802,59 @@ function Invoke-ToshibaScanSuite {
             try { Start-Process 'http://10.6.0.25' } catch { }
         }
         '5' {
-            Write-Host ' Dang tat bat buoc ky so (RequireSecuritySignature = False)...' -ForegroundColor Gray
+            Write-Host ' Dang khoi phuc chuan bao mat cao Microsoft (Signing = True, InsecureGuest = False)...' -ForegroundColor Gray
             try {
-                Set-SmbClientConfiguration -RequireSecuritySignature $false -Force -ErrorAction Stop
-                Write-Host ' [THANH CONG] Da tat bat buoc ky so SMB. Ban co the thu vao lai \\10.6.0.26\file_share.' -ForegroundColor Green
-                Write-Host ' Luu y: Sau khi IT cau hinh xong SMB Signing tren TopAccess may 2508A, hay bat lai ky so de bao ve an toan!' -ForegroundColor Yellow
+                Set-SmbClientConfiguration -RequireSecuritySignature $true -Force -ErrorAction Stop
+                Set-SmbClientConfiguration -EnableInsecureGuestLogons $false -Force -ErrorAction Stop
+                Write-Host ' [THANH CONG] Da bat bat buoc ky so va chan Guest khong an toan!' -ForegroundColor Green
             } catch { Write-Host (' Loi: ' + $_.Exception.Message) -ForegroundColor Red }
         }
         '6' {
-            Write-Host ' Dang bat bat buoc ky so an toan (RequireSecuritySignature = True)...' -ForegroundColor Gray
+            Write-Host ' Dang ha cau hinh che do tuong thich (Signing = False, InsecureGuest = True)...' -ForegroundColor Gray
             try {
-                Set-SmbClientConfiguration -RequireSecuritySignature $true -Force -ErrorAction Stop
-                Write-Host ' [THANH CONG] Da bat lai bat buoc ky so SMB chuan bao mat!' -ForegroundColor Green
+                Set-SmbClientConfiguration -RequireSecuritySignature $false -Force -ErrorAction Stop
+                Set-SmbClientConfiguration -EnableInsecureGuestLogons $true -Force -ErrorAction Stop
+                Write-Host ' [THANH CONG] Da chuyen sang che do tuong thich de ket noi may 2508A.' -ForegroundColor Green
+                Write-Host ' Luu y: Sau khi IT cau hinh xong TopAccess tren may in, hay chon [5] de bat lai bao mat!' -ForegroundColor Yellow
             } catch { Write-Host (' Loi: ' + $_.Exception.Message) -ForegroundColor Red }
         }
         '7' {
+            Write-Host ' Dang kich hoat tinh nang SMB1Protocol-Client (co the mat vai chuc giay)...' -ForegroundColor Gray
+            try {
+                Enable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol-Client -NoRestart -ErrorAction Stop | Out-Null
+                Write-Host ' [THANH CONG] Da bat tinh nang SMB 1.0 Client. Luu y can khoi dong lai may de co hieu luc.' -ForegroundColor Green
+            } catch { Write-Host (' Loi: ' + $_.Exception.Message) -ForegroundColor Red }
+        }
+        '8' {
+            Write-Host ' Dang tat tinh nang SMB1Protocol-Client...' -ForegroundColor Gray
+            try {
+                Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol-Client -NoRestart -ErrorAction Stop | Out-Null
+                Write-Host ' [THANH CONG] Da tat tinh nang SMB 1.0 Client de bao ve may tinh.' -ForegroundColor Green
+            } catch { Write-Host (' Loi: ' + $_.Exception.Message) -ForegroundColor Red }
+        }
+        '9' {
+            Write-Host ' Dang kiem tra lai phien ket noi SMB...' -ForegroundColor Gray
+            try {
+                $chk = Get-SmbConnection -ErrorAction SilentlyContinue | Where-Object { $_.ServerName -in @('10.6.0.25', '10.6.0.26', 'filesvr') -or $_.ShareName -match 'file_share' }
+                if ($chk) {
+                    $chk | Select-Object ServerName, ShareName, Dialect, Signed | Format-Table -AutoSize | Out-String | ForEach-Object { Write-Host $_.TrimEnd() -ForegroundColor Cyan }
+                } else {
+                    Write-Host ' Khong tim thay phien SMB nao. Hay mo thu muc \\10.6.0.25\file_share tren Explorer truoc.' -ForegroundColor Yellow
+                }
+            } catch { Write-Host (' Loi: ' + $_.Exception.Message) -ForegroundColor Red }
+        }
+        'A' {
+            Write-Host ' Dang truy van 15 log loi SMB Client Security gan day...' -ForegroundColor Gray
+            try {
+                $evDetail = Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-SmbClient/Security'; StartTime = (Get-Date).AddMinutes(-30) } -ErrorAction SilentlyContinue | Select-Object -First 15
+                if ($evDetail) {
+                    $evDetail | Select-Object TimeCreated, Id, Message | Format-List | Out-String | ForEach-Object { Write-Host $_ -ForegroundColor Gray }
+                } else {
+                    Write-Host ' Khong co log loi SMB nao trong 30 phut qua.' -ForegroundColor Green
+                }
+            } catch { Write-Host (' Loi: ' + $_.Exception.Message) -ForegroundColor Red }
+        }
+        'B' {
             Write-Host ' Dang reset ket noi SMB va dong bo lai Credential...' -ForegroundColor Gray
             try {
                 & net.exe use * /delete /y 2>&1 | Out-Null
@@ -827,41 +893,59 @@ function Invoke-SmbSecurityConfig {
     }
     Write-Host ('  3. Giao thuc SMB 1.0 Client (SMB1Protocol)     : {0}' -f $smb1State)
     Write-Host '-------------------------------------------------------------------------------------------'
-    Write-Host ' [1] BAT bat buoc Ky so SMB (RequireSecuritySignature = True) - Chuan an toan' -ForegroundColor Green
-    Write-Host ' [2] TAT bat buoc Ky so SMB (RequireSecuritySignature = False) - De sua loi ket noi scan' -ForegroundColor Yellow
-    Write-Host ' [3] CHAN dang nhap Guest khong an toan (EnableInsecureGuestLogons = False) - Chuan an toan' -ForegroundColor Green
-    Write-Host ' [4] CHO PHEP dang nhap Guest (EnableInsecureGuestLogons = True) - Cho may scan khong user' -ForegroundColor Yellow
+    Write-Host ' [1] [MUC TIEU AN TOAN] Bat Ky so ($true) & Chan Guest ($false) - Chuan bao mat Microsoft' -ForegroundColor Green
+    Write-Host ' [2] [CHE DO TUONG THICH] Tat Ky so ($false) & Cho phep Guest ($true) - Cho thiet bi cu/scan' -ForegroundColor Yellow
+    Write-Host ' [3] Bat/Tat rieng le Bat buoc Ky so (RequireSecuritySignature)'
+    Write-Host ' [4] Bat/Tat rieng le Dang nhap Guest khong an toan (EnableInsecureGuestLogons)'
     Write-Host ' [5] BAT tinh nang SMB 1.0 Client (Can cho may scan/NAS rat cu, can khoi dong lai)' -ForegroundColor Magenta
     Write-Host ' [6] TAT tinh nang SMB 1.0 Client (Khuyen nghi bao mat chong Ransomware)' -ForegroundColor Green
-    Write-Host ' [7] Xoa sach cac ket noi SMB/IPC$ dang treo (net use * /delete /y)' -ForegroundColor Cyan
+    Write-Host ' [7] Kiem tra phien SMB dang mo (Get-SmbConnection: Dialect, Signed)' -ForegroundColor Cyan
+    Write-Host ' [8] Xem 15 log loi SMB Client Security gan day (30 phut qua)' -ForegroundColor Gray
+    Write-Host ' [9] Xoa sach cac ket noi SMB/IPC$ dang treo (net use * /delete /y)' -ForegroundColor Cyan
     Write-Host ' [0] Quay lai'
     Write-Host '-------------------------------------------------------------------------------------------'
 
-    $choice = Read-Host 'Chon thao tac [0-7]'
+    $choice = Read-Host 'Chon thao tac [0-9]'
     switch ($choice) {
         '1' {
             try {
                 Set-SmbClientConfiguration -RequireSecuritySignature $true -Force -ErrorAction Stop
-                Write-Host ' [THANH CONG] Da BAT bat buoc ky so SMB Client.' -ForegroundColor Green
+                Set-SmbClientConfiguration -EnableInsecureGuestLogons $false -Force -ErrorAction Stop
+                Write-Host ' [THANH CONG] Da ap dung chuan bao mat: Bat ky so SMB va Chan Guest khong an toan.' -ForegroundColor Green
             } catch { Write-Host (' Loi: ' + $_.Exception.Message) -ForegroundColor Red }
         }
         '2' {
             try {
                 Set-SmbClientConfiguration -RequireSecuritySignature $false -Force -ErrorAction Stop
-                Write-Host ' [THANH CONG] Da TAT bat buoc ky so SMB Client (Cho phep vao thiet bi chua bat signing).' -ForegroundColor Green
+                Set-SmbClientConfiguration -EnableInsecureGuestLogons $true -Force -ErrorAction Stop
+                Write-Host ' [THANH CONG] Da ap dung che do tuong thich: Tat ky so va Cho phep Guest.' -ForegroundColor Green
             } catch { Write-Host (' Loi: ' + $_.Exception.Message) -ForegroundColor Red }
         }
         '3' {
-            try {
-                Set-SmbClientConfiguration -EnableInsecureGuestLogons $false -Force -ErrorAction Stop
-                Write-Host ' [THANH CONG] Da CHAN dang nhap Guest khong an toan.' -ForegroundColor Green
-            } catch { Write-Host (' Loi: ' + $_.Exception.Message) -ForegroundColor Red }
+            if ($c -and $c.RequireSecuritySignature) {
+                try {
+                    Set-SmbClientConfiguration -RequireSecuritySignature $false -Force -ErrorAction Stop
+                    Write-Host ' [THANH CONG] Da TAT bat buoc ky so SMB.' -ForegroundColor Green
+                } catch { Write-Host (' Loi: ' + $_.Exception.Message) -ForegroundColor Red }
+            } else {
+                try {
+                    Set-SmbClientConfiguration -RequireSecuritySignature $true -Force -ErrorAction Stop
+                    Write-Host ' [THANH CONG] Da BAT bat buoc ky so SMB.' -ForegroundColor Green
+                } catch { Write-Host (' Loi: ' + $_.Exception.Message) -ForegroundColor Red }
+            }
         }
         '4' {
-            try {
-                Set-SmbClientConfiguration -EnableInsecureGuestLogons $true -Force -ErrorAction Stop
-                Write-Host ' [THANH CONG] Da CHO PHEP dang nhap Guest khong an toan.' -ForegroundColor Green
-            } catch { Write-Host (' Loi: ' + $_.Exception.Message) -ForegroundColor Red }
+            if ($c -and $c.EnableInsecureGuestLogons) {
+                try {
+                    Set-SmbClientConfiguration -EnableInsecureGuestLogons $false -Force -ErrorAction Stop
+                    Write-Host ' [THANH CONG] Da CHAN dang nhap Guest khong an toan.' -ForegroundColor Green
+                } catch { Write-Host (' Loi: ' + $_.Exception.Message) -ForegroundColor Red }
+            } else {
+                try {
+                    Set-SmbClientConfiguration -EnableInsecureGuestLogons $true -Force -ErrorAction Stop
+                    Write-Host ' [THANH CONG] Da CHO PHEP dang nhap Guest khong an toan.' -ForegroundColor Green
+                } catch { Write-Host (' Loi: ' + $_.Exception.Message) -ForegroundColor Red }
+            }
         }
         '5' {
             Write-Host ' Dang kich hoat tinh nang SMB1Protocol-Client (co the mat vai chuc giay)...' -ForegroundColor Gray
@@ -878,6 +962,27 @@ function Invoke-SmbSecurityConfig {
             } catch { Write-Host (' Loi: ' + $_.Exception.Message) -ForegroundColor Red }
         }
         '7' {
+            try {
+                $conns = Get-SmbConnection -ErrorAction SilentlyContinue
+                if ($conns) {
+                    $conns | Select-Object ServerName, ShareName, Dialect, Signed | Format-Table -AutoSize | Out-String | ForEach-Object { Write-Host $_.TrimEnd() -ForegroundColor Cyan }
+                } else {
+                    Write-Host ' Khong co phien SMB nao dang mo tren he thong.' -ForegroundColor Yellow
+                }
+            } catch { Write-Host (' Loi: ' + $_.Exception.Message) -ForegroundColor Red }
+        }
+        '8' {
+            Write-Host ' Dang truy van 15 log loi SMB Client Security gan day...' -ForegroundColor Gray
+            try {
+                $evDetail = Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-SmbClient/Security'; StartTime = (Get-Date).AddMinutes(-30) } -ErrorAction SilentlyContinue | Select-Object -First 15
+                if ($evDetail) {
+                    $evDetail | Select-Object TimeCreated, Id, Message | Format-List | Out-String | ForEach-Object { Write-Host $_ -ForegroundColor Gray }
+                } else {
+                    Write-Host ' Khong co log loi SMB nao trong 30 phut qua.' -ForegroundColor Green
+                }
+            } catch { Write-Host (' Loi: ' + $_.Exception.Message) -ForegroundColor Red }
+        }
+        '9' {
             try {
                 & net.exe use * /delete /y 2>&1 | Out-Null
                 Write-Host ' [THANH CONG] Da xoa sach toan bo session SMB/IPC$ dang ton tai tren may.' -ForegroundColor Green
@@ -2648,6 +2753,209 @@ function Invoke-ToggleRDP {
     Write-SessionLog 'Invoke-ToggleRDP completed'
 }
 
+function Invoke-CloudIdentitySuite {
+    [CmdletBinding()]
+    param()
+    Write-SessionLog 'Invoke-CloudIdentitySuite started'
+    Write-Host '===========================================================================================' -ForegroundColor Cyan
+    Write-Host '  QUAN LY CLOUD IDENTITY, ENTRA ID, PRT TOKEN & INTUNE (MICROSOFT 365)' -ForegroundColor Cyan
+    Write-Host '==========================================================================================='
+
+    # 1. Thu thap thong tin tu dsregcmd /status
+    Write-Host ' [1/3] Dang truy van trang thai thiet bi va danh tinh dam may (dsregcmd /status)...' -ForegroundColor Gray
+    $dsRaw = ""
+    try { $dsRaw = (& dsregcmd.exe /status 2>&1 | Out-String).Trim() } catch { }
+
+    function Get-DsValue([string]$pattern, [string]$default = 'N/A') {
+        if ($dsRaw -match $pattern) { return $matches[1].Trim() }
+        return $default
+    }
+
+    $azureAdJoined    = Get-DsValue '(?i)AzureAdJoined\s*:\s*([A-Za-z]+)' 'NO'
+    $enterpriseJoined = Get-DsValue '(?i)EnterpriseJoined\s*:\s*([A-Za-z]+)' 'NO'
+    $domainJoined     = Get-DsValue '(?i)DomainJoined\s*:\s*([A-Za-z]+)' 'NO'
+    $domainName       = Get-DsValue '(?i)DomainName\s*:\s*([^\r\n]+)' 'N/A'
+    $deviceName       = Get-DsValue '(?i)Device Name\s*:\s*([^\r\n]+)' $env:COMPUTERNAME
+    $deviceId         = Get-DsValue '(?i)DeviceId\s*:\s*([^\r\n]+)' 'Chua co'
+    $tenantId         = Get-DsValue '(?i)TenantId\s*:\s*([^\r\n]+)' 'Chua lien ket'
+    $tenantName       = Get-DsValue '(?i)TenantName\s*:\s*([^\r\n]+)' 'N/A'
+
+    $workplaceJoined  = Get-DsValue '(?i)WorkplaceJoined\s*:\s*([A-Za-z]+)' 'NO'
+    $wamDefaultSet    = Get-DsValue '(?i)WamDefaultSet\s*:\s*([A-Za-z]+)' 'NO'
+
+    $azureAdPrt       = Get-DsValue '(?i)AzureAdPrt\s*:\s*([A-Za-z]+)' 'NO'
+    $azureAdPrtAuth   = Get-DsValue '(?i)AzureAdPrtAuthority\s*:\s*([^\r\n]+)' 'N/A'
+    $enterprisePrt    = Get-DsValue '(?i)EnterprisePrt\s*:\s*([A-Za-z]+)' 'NO'
+
+    $diagAdConnect    = Get-DsValue '(?i)AD Connectivity Test\s*:\s*([^\r\n]+)' 'N/A'
+    $clientErrorCode  = Get-DsValue '(?i)Client ErrorCode\s*:\s*([^\r\n]+)' 'N/A'
+    $executingUser    = Get-DsValue '(?i)Executing Account Name\s*:\s*([^\r\n]+)' $env:USERNAME
+
+    # 2. Thu thap thong tin Intune / MDM
+    Write-Host ' [2/3] Kiem tra tinh trang dang ky quan ly thiet bi MDM / Intune...' -ForegroundColor Gray
+    $mdmFound = $false
+    $mdmProvider = ""
+    $mdmUrl = ""
+    $mdmUpn = ""
+    try {
+        $enrollments = Get-ChildItem 'HKLM:\SOFTWARE\Microsoft\Enrollments' -ErrorAction SilentlyContinue
+        if ($enrollments) {
+            foreach ($e in $enrollments) {
+                $p = Get-ItemProperty -Path $e.PSPath -ErrorAction SilentlyContinue
+                if ($p -and ($p.DiscoveryServiceFullURL -or "$($p.ProviderID)" -match 'MS DM Server|Intune' -or ($p.UPN -and "$($p.UPN)" -match '@'))) {
+                    $mdmFound = $true
+                    $mdmProvider = "$($p.ProviderID)"
+                    $mdmUrl = "$($p.DiscoveryServiceFullURL)"
+                    $mdmUpn = "$($p.UPN)"
+                    break
+                }
+            }
+        }
+    } catch { }
+
+    Write-Host '-------------------------------------------------------------------------------------------'
+    Write-Host ' THONG TIN IDENTITY & THIET BI (DEVICE & DOMAIN STATE):' -ForegroundColor Yellow
+    Write-Host ("  - Gia nhap On-Premises AD : {0} (Domain: {1})" -f $domainJoined, $domainName) -ForegroundColor $(if ($domainJoined -eq 'YES') { 'Green' } else { 'White' })
+    Write-Host ("  - Gia nhap Entra ID (Cloud): {0}" -f $azureAdJoined) -ForegroundColor $(if ($azureAdJoined -eq 'YES') { 'Green' } else { 'White' })
+    Write-Host ("  - Lien ket Tai khoan Co quan: {0} (Workplace / Work Account)" -f $workplaceJoined) -ForegroundColor $(if ($workplaceJoined -eq 'YES') { 'Green' } else { 'White' })
+    if ($deviceId -ne 'Chua co') { Write-Host ("  - Cloud Device ID         : {0}" -f $deviceId) }
+    if ($tenantId -ne 'Chua lien ket') { Write-Host ("  - Tenant ID               : {0}" -f $tenantId) }
+    if ($tenantName -ne 'N/A') { Write-Host ("  - Tenant Name             : {0}" -f $tenantName) }
+
+    Write-Host '-------------------------------------------------------------------------------------------'
+    Write-Host ' TRANG THAI XAC THUC SSO & PRT TOKEN (OFFICE 365 / OUTLOOK):' -ForegroundColor Yellow
+    Write-Host ("  - Primary Refresh Token (AzureAdPrt) : {0}" -f $azureAdPrt) -ForegroundColor $(if ($azureAdPrt -eq 'YES') { 'Green' } else { 'Yellow' })
+    Write-Host ("  - Web Account Manager (WamDefaultSet): {0}" -f $wamDefaultSet)
+    if ($azureAdPrtAuth -ne 'N/A' -and $azureAdPrtAuth -ne 'NO') {
+        Write-Host ("  - Co quan xac thuc PRT              : {0}" -f $azureAdPrtAuth)
+    }
+
+    Write-Host '-------------------------------------------------------------------------------------------'
+    Write-Host ' TRANG THAI QUAN LY THIET BI MDM / MICROSOFT INTUNE:' -ForegroundColor Yellow
+    if ($mdmFound) {
+        Write-Host '  - Tinh trang MDM          : DA DANG KY (Enrolled)' -ForegroundColor Green
+        if ($mdmUpn) { Write-Host ("  - Tai khoan dang ky       : {0}" -f $mdmUpn) -ForegroundColor Cyan }
+        if ($mdmProvider) { Write-Host ("  - MDM Provider            : {0}" -f $mdmProvider) }
+        if ($mdmUrl) { Write-Host ("  - Discovery URL           : {0}" -f $mdmUrl) }
+    } else {
+        Write-Host '  - Tinh trang MDM          : CHUA DANG KY (Khong su dung hoac goi khong co ban quyen Intune Plan 1)' -ForegroundColor Gray
+    }
+
+    # 3. Danh gia suc khoe va canh bao
+    Write-Host '-------------------------------------------------------------------------------------------'
+    Write-Host ' DANH GIA SUC KHOE IDENTITY & KHUYEN NGHI IT:' -ForegroundColor Cyan
+    if ($azureAdPrt -eq 'YES') {
+        Write-Host '  [+] HE THONG SSO HOAT DONG TOT: May tinh da duoc cap PRT Token.' -ForegroundColor Green
+        Write-Host '      Cac ung dung Office 365 (Word, Excel, Outlook, OneDrive) xac thuc tu dong on dinh.'
+    } else {
+        Write-Host '  [!] CANH BAO: May tinh CHUA CO hoac BI MAT PRT Token (AzureAdPrt : NO).' -ForegroundColor Yellow
+        Write-Host '      => Day la nguyen nhan khien Outlook hien tam giac vang "Need Password", loop dang nhap'
+        Write-Host '         hoac Office bao loi "Account Error". Can reset WAM / TokenBroker cache.'
+    }
+
+    if ($clientErrorCode -ne 'N/A' -and $clientErrorCode -ne '0x0') {
+        Write-Host ("  [!] Ma loi dang ky Entra ID gan nhat: {0} (Account: {1})" -f $clientErrorCode, $executingUser) -ForegroundColor Gray
+    }
+
+    # 4. Menu thao tac
+    Write-Host '-------------------------------------------------------------------------------------------'
+    Write-Host ' CAC THAO TAC XU LY & DIEU KHIEN:' -ForegroundColor Yellow
+    Write-Host ' [1] 1-Click Sua loi Outlook / Office 365 "Need Password", Tam giac vang & Reset WAM Token' -ForegroundColor Green
+    Write-Host ' [2] Dong bo tuc thi chinh sach MDM / Intune ve may tinh (DeviceEnroller.exe)' -ForegroundColor Cyan
+    Write-Host ' [3] Mo nhanh cai dat "Access work or school" (Lien ket / Ngat lien ket tai khoan)'
+    Write-Host ' [4] Dang ky lai WAM BrokerPlugin (Sua loi man hinh dang nhap bi trang tinh / crash)' -ForegroundColor Magenta
+    Write-Host ' [5] Xuat toan bo bao cao dsregcmd /status chi tiet ra file text Desktop'
+    Write-Host ' [0] Quay lai'
+    Write-Host '-------------------------------------------------------------------------------------------'
+
+    $sub = Read-Host 'Chon thao tac [0-5]'
+    switch ($sub) {
+        '1' {
+            Write-Host ' [1/3] Dang dong cac ung dung Office va trinh duyet...' -ForegroundColor Gray
+            $apps = @('outlook', 'olk', 'winword', 'excel', 'powerpnt', 'onedrive', 'teams', 'ms-teams')
+            foreach ($a in $apps) {
+                try { Get-Process -Name $a -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue } catch { }
+            }
+            Start-Sleep -Seconds 1
+
+            Write-Host ' [2/3] Dang xoa bo nho dem TokenBroker, OneAuth, IdentityCache va WAM Accounts...' -ForegroundColor Gray
+            $paths = @(
+                (Join-Path $env:LOCALAPPDATA 'Microsoft\OneAuth'),
+                (Join-Path $env:LOCALAPPDATA 'Microsoft\IdentityCache'),
+                (Join-Path $env:LOCALAPPDATA 'Microsoft\TokenBroker\Cache'),
+                (Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.AAD.BrokerPlugin_cw5n1h2txyewy\AC\TokenBroker\Accounts'),
+                (Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.Windows.CloudExperienceHost_cw5n1h2txyewy\AC\TokenBroker\Accounts')
+            )
+            $cleaned = 0
+            foreach ($p in $paths) {
+                if (Test-Path -LiteralPath $p) {
+                    try {
+                        Get-ChildItem -LiteralPath $p -Force -Recurse -ErrorAction SilentlyContinue | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+                        $cleaned++
+                    } catch { }
+                }
+            }
+
+            Write-Host ' [3/3] Dang dang ky lai AAD BrokerPlugin de khoi tao moi...' -ForegroundColor Gray
+            try {
+                $manifest = "$env:SystemRoot\SystemApps\Microsoft.AAD.BrokerPlugin_cw5n1h2txyewy\AppxManifest.xml"
+                if (Test-Path -LiteralPath $manifest) {
+                    Add-AppxPackage -Register $manifest -DisableDevelopmentMode -ForceApplicationShutdown -ErrorAction SilentlyContinue
+                }
+            } catch { }
+
+            Write-Host '-------------------------------------------------------------------------------------------'
+            Write-Host ' [THANH CONG] Da xoa sach token xac thuc cu bi loi va reset WAM BrokerPlugin!' -ForegroundColor Green
+            Write-Host ' Nguoi dung bay gio hay mo lai Outlook / Word de dang nhap lai (Windows se cap PRT moi).' -ForegroundColor Cyan
+        }
+        '2' {
+            Write-Host ' Dang kich hoat dong bo chinh sach thiet bi tu Intune / MDM...' -ForegroundColor Gray
+            try {
+                Start-Process -FilePath "$env:SystemRoot\system32\DeviceEnroller.exe" -ArgumentList '/c /urmgred' -NoNewWindow -Wait -ErrorAction Stop
+                Write-Host ' [THANH CONG] Da gui lenh dong bo chinh sach Intune / MDM thanh cong.' -ForegroundColor Green
+                Write-Host ' Windows dang cap nhat cac chinh sach tu server trong nen.' -ForegroundColor Cyan
+            } catch {
+                Write-Host (' [LOI] ' + $_.Exception.Message) -ForegroundColor Red
+            }
+        }
+        '3' {
+            Write-Host ' Dang mo trang Windows Settings: Access work or school...' -ForegroundColor Gray
+            try { Start-Process 'ms-settings:workplace' } catch { }
+        }
+        '4' {
+            Write-Host ' Dang dang ky lai goi ung dung AAD BrokerPlugin (Reset WAM)...' -ForegroundColor Gray
+            try {
+                $manifest = "$env:SystemRoot\SystemApps\Microsoft.AAD.BrokerPlugin_cw5n1h2txyewy\AppxManifest.xml"
+                if (Test-Path -LiteralPath $manifest) {
+                    Add-AppxPackage -Register $manifest -DisableDevelopmentMode -ForceApplicationShutdown -ErrorAction Stop
+                    Write-Host ' [THANH CONG] Da dang ky lai AAD BrokerPlugin thanh cong!' -ForegroundColor Green
+                } else {
+                    Write-Host ' [LOI] Khong tim thay tep AppxManifest cua AAD BrokerPlugin.' -ForegroundColor Red
+                }
+            } catch {
+                Write-Host (' [LOI] ' + $_.Exception.Message) -ForegroundColor Red
+            }
+        }
+        '5' {
+            try {
+                [IO.Directory]::CreateDirectory($OutputRoot) | Out-Null
+                $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+                $reportPath = Join-Path $OutputRoot ("EntraID_Status_{0}_{1}.txt" -f (Get-SafeName $env:COMPUTERNAME), $stamp)
+                $dsRaw | Set-Content -LiteralPath $reportPath -Encoding UTF8
+                Write-Host (' [THANH CONG] Da xuat bao cao dsregcmd ra: {0}' -f $reportPath) -ForegroundColor Green
+                try { Start-Process 'notepad.exe' $reportPath } catch { }
+            } catch {
+                Write-Host (' [LOI] ' + $_.Exception.Message) -ForegroundColor Red
+            }
+        }
+        default {
+            Write-Host 'Quay lai menu.'
+        }
+    }
+    Write-Host '==========================================================================================='
+    Write-SessionLog 'Invoke-CloudIdentitySuite completed'
+}
+
 try {
     Write-SessionLog ('Started action: {0}' -f $Action)
     switch ($Action) {
@@ -2683,6 +2991,7 @@ try {
         'LocalUserAdmin'        { Invoke-LocalUserAdmin }
         'RenamePC'              { Invoke-RenamePC }
         'ToggleRDP'             { Invoke-ToggleRDP }
+        'CloudIdentity'         { Invoke-CloudIdentitySuite }
         'WindowsUpdate'         { Invoke-FocusedReport 'WindowsUpdate' { param($d) Save-SecurityUpdateDetails $d } }
         'Connectivity'          { Invoke-ConnectivityTest }
         'CaseNote'              { New-CaseNote }

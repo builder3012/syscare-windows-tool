@@ -2,8 +2,20 @@
 
 ## Kiểm thử phiên bản hoàn thiện v2.4.0 (2026-10-13)
 
-- **PowerShell AST & StrictMode 2.0:** Mô-đun `Syscare.WindowsTool.ps1` được phân tích cú pháp đạt **0 lỗi**. Các hàm mới `Invoke-SearchFix`, `Invoke-DeepClean`, `Invoke-FastStartupToggle`, `Invoke-LicenseCheck`, `Invoke-LocalUserAdmin`, `Invoke-RenamePC`, `Invoke-ToggleRDP` đều chạy độc lập an toàn, bẫy lỗi bằng `try/catch` và ghi nhận log phiên.
-- **Cấu trúc nhãn BAT:** Kiểm tra tự động 175 nhãn trong `Tool_Windows.bat` đạt **100% hợp lệ, 0 nhãn thiếu hoặc trỏ sai**.
+- **PowerShell AST & StrictMode 2.0:** Mô-đun `Syscare.WindowsTool.ps1` được phân tích cú pháp đạt **0 lỗi**. Các hàm `Invoke-ToshibaScanSuite`, `Invoke-SmbSecurityConfig`, `Invoke-RpcPrintFix`, `Invoke-CloudIdentitySuite`, `Invoke-SearchFix`, `Invoke-DeepClean`, `Invoke-FastStartupToggle`, `Invoke-LicenseCheck`, `Invoke-LocalUserAdmin`, `Invoke-RenamePC`, `Invoke-ToggleRDP` đều chạy độc lập an toàn, bẫy lỗi bằng `try/catch` và ghi nhận log phiên.
+- **Cấu trúc nhãn BAT:** Kiểm tra tự động 181 nhãn trong `Tool_Windows.bat` đạt **100% hợp lệ, 0 nhãn thiếu hoặc trỏ sai**.
+- **Chuyên đề Sửa lỗi Máy in & Scan SMB Toshiba (e-STUDIO 3515AC & 2508A - `[8] -> [C]`):**
+  - Đã tích hợp bảng đối chiếu Microsoft Security Baseline (SMB Signing, Insecure Guest, SMB1).
+  - Tự động kích hoạt phiên SMB live và hiển thị `Get-SmbConnection` với cột `Dialect` (SMB 3.1.1) và `Signed` (`True/False`).
+  - Phân tích log lỗi bảo mật `Microsoft-Windows-SmbClient/Security` trong 30 phút gần nhất (Event 31017, Event 31001), chẩn đoán chính xác nguyên nhân lỗi `"The specified network name is no longer available"`.
+  - Cung cấp 2 Preset 1-Click: Áp dụng chuẩn bảo mật cao Microsoft (`RequireSecuritySignature = True`, `EnableInsecureGuestLogons = False`) và Chế độ tương thích cho máy 2508A (`RequireSecuritySignature = False`, `EnableInsecureGuestLogons = True`).
+- **Mở rộng Cloud Identity, Entra ID, PRT Token & Intune (`[7] -> [M]`, `[A] -> [C]`):**
+  - Chẩn đoán tình trạng gia nhập đám mây: `dsregcmd /status` trích xuất `AzureAdJoined`, `EnterpriseJoined`, `DomainJoined`, `WorkplaceJoined`, DeviceId, TenantId.
+  - Giám sát sức khỏe SSO và trạng thái **AzureAdPrt (Primary Refresh Token)**, `AzureAdPrtAuthority`, `WamDefaultSet`, phát hiện và chỉ điểm mã lỗi Client ErrorCode.
+  - Tự động nhận diện thiết bị quản lý qua Intune / MDM (`HKLM:\SOFTWARE\Microsoft\Enrollments`), đọc UPN và Discovery Service URL; cảnh báo chính xác khi tenant dùng gói Office 365 Business Standard.
+  - 1-Click Kích hoạt Đồng bộ Chính sách Thiết bị Intune / MDM (`DeviceEnroller.exe /c /urmgred`).
+  - 1-Click Khắc phục triệt để lỗi Blank Screen / Vòng lặp đăng nhập (Login Loop) / Tam giác vàng "Need Password" trên Outlook và Microsoft 365: Đăng ký lại gói ứng dụng `Microsoft.AAD.BrokerPlugin` và làm sạch bộ nhớ đệm TokenBroker.
+  - 1-Click Xuất toàn bộ báo cáo chẩn đoán `dsregcmd /status` chi tiết ra tệp văn bản UTF-8 trên Desktop và mở tự động bằng Notepad.
 - **Kiểm thử thực thi thực tế (Live Execution on Windows):**
   - `SearchFix`: Tự động dừng WSearch, ngắt tiến trình tìm kiếm, đặt startup Automatic và khởi động lại dịch vụ thành công trong 2 giây.
   - `LicenseCheck & ITSO Crack Audit`:

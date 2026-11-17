@@ -877,11 +877,12 @@ echo  [D] Liet ke tat ca Services          [E] Xem Windows Edition hien tai
 echo  [F] Xem cac Target Edition           [G] Xem Reserved Storage Status
 echo  [H] Thong tin tai san 1 dong Ticket  [I] Quan ly mat khau da luu (keymgr)
 echo  [J] Quan ly User va Built-in Admin   [K] Mo Registry Editor (regedit)
-echo  [L] Mo Group Policy (gpedit.msc)
+echo  [L] Mo Group Policy (gpedit.msc)     [M] Cloud Identity, Entra ID va PRT
 echo  [0] Quay lai menu chinh
 echo ===========================================================================================
-choice /C 123456789ABCDEFGHIJKL0 /N /M "Chon chuc nang: "
-if errorlevel 22 goto main
+choice /C 123456789ABCDEFGHIJKLM0 /N /M "Chon chuc nang: "
+if errorlevel 23 goto main
+if errorlevel 22 goto admin_cloud_identity
 if errorlevel 21 goto admin_gpedit
 if errorlevel 20 goto admin_regedit
 if errorlevel 19 goto admin_local_users
@@ -1023,6 +1024,10 @@ goto admin_menu
 call :log_action "admin_gpedit"
 start "" gpedit.msc
 goto admin_menu
+
+:admin_cloud_identity
+call :run_core CloudIdentity
+goto nav_admin
 
 rem ----------------------------------------------------------------
 rem NHOM 8 - MAY IN VA TIEN ICH
@@ -1260,10 +1265,12 @@ echo  [8] Sua nhanh tai cho           - DNS, time, GPO, Spooler, Explorer, Updat
 echo  [9] Ghi bien ban ticket         - Ma ticket, hien trang, xu ly, ket qua/next step
 echo  [A] Tao goi su co ZIP           - Bao cao day du kem SHA-256 de escalation
 echo  [B] Thong tin tai san 1 dong SLA- CPU, RAM, SN, Disk, IP de dan Ticket
+echo  [C] Cloud Identity, Entra ID    - Kiem tra AzureAdPrt, Intune, dsregcmd
 echo  [0] Quay lai menu chinh
 echo ===========================================================================================
-choice /C 123456789AB0 /N /M "Chon chuc nang: "
-if errorlevel 12 goto main
+choice /C 123456789ABC0 /N /M "Chon chuc nang: "
+if errorlevel 13 goto main
+if errorlevel 12 goto sla_cloud_identity
 if errorlevel 11 goto sla_asset_specs
 if errorlevel 10 goto sla_incident_bundle
 if errorlevel 9 goto sla_case_note
@@ -1323,6 +1330,10 @@ goto nav_sla
 call :run_core AssetSpecs
 goto nav_sla
 
+:sla_cloud_identity
+call :run_core CloudIdentity
+goto nav_sla
+
 :sla_fix_menu
 cls
 echo ===========================================================================================
@@ -1339,10 +1350,12 @@ echo  [8] Xoa Cache Microsoft 365/Teams      - Sua loi treo ung dung, login loop
 echo  [9] Mo quan ly chung thuc Windows      - Credential Manager / keymgr
 echo  [A] Don dep he thong sau 1-Click        - Xoa Temp, Prefetch, Cache o C:
 echo  [B] Sua loi Windows Search va Start     - Khoi dong lai WSearch
+echo  [C] 1-Click WAM Token va Outlook SSO    - Sua loi loop login, tam giac vang
 echo  [0] Quay lai SLA Quick Triage
 echo ===========================================================================================
-choice /C 123456789AB0 /N /M "Chon chuc nang: "
-if errorlevel 12 goto sla_menu
+choice /C 123456789ABC0 /N /M "Chon chuc nang: "
+if errorlevel 13 goto sla_menu
+if errorlevel 12 goto sla_fix_wam_token
 if errorlevel 11 goto sla_fix_search
 if errorlevel 10 goto sla_fix_deep_clean
 if errorlevel 9 goto sla_fix_keymgr
@@ -1420,6 +1433,10 @@ goto nav_sla_fix
 
 :sla_fix_search
 call :run_core SearchFix
+goto nav_sla_fix
+
+:sla_fix_wam_token
+call :run_core CloudIdentity
 goto nav_sla_fix
 
 rem ----------------------------------------------------------------
