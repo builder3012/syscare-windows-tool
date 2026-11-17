@@ -23,6 +23,38 @@ $versionMatch = Select-String -LiteralPath $batPath -Pattern '^set "TOOL_VERSION
 if (-not $versionMatch) { throw 'TOOL_VERSION was not found in Tool_Windows.bat.' }
 $toolVersion = $versionMatch.Matches[0].Groups[1].Value
 
+# 0. Tu dong bien dich cac mo-dun tu src/ vao Syscare.WindowsTool.ps1
+$srcDir = Join-Path $projectRoot 'src'
+if (Test-Path -LiteralPath $srcDir) {
+    Write-Host 'Dang bien dich Syscare.WindowsTool.ps1 tu cac mo-dun src/...' -ForegroundColor Cyan
+    $headerPath = Join-Path $srcDir 'Header.ps1'
+    $modulesDir = Join-Path $srcDir 'modules'
+    $footerPath = Join-Path $srcDir 'Footer.ps1'
+
+    $moduleFiles = Get-ChildItem -LiteralPath $modulesDir -Filter '*.ps1' | Sort-Object Name
+    $allSrcFiles = @($headerPath) + $moduleFiles.FullName + @($footerPath)
+
+    $compiledContent = New-Object System.Text.StringBuilder
+    foreach ($f in $allSrcFiles) {
+        if (-not (Test-Path -LiteralPath $f)) { throw "Thieu tep mo-dun nguon: $f" }
+        $content = [IO.File]::ReadAllText($f, [System.Text.Encoding]::UTF8)
+        [void]$compiledContent.AppendLine($content.TrimEnd())
+        [void]$compiledContent.AppendLine('')
+    }
+
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [IO.File]::WriteAllText($corePath, $compiledContent.ToString().TrimEnd() + "`r`n", $utf8NoBom)
+
+    # Kiem tra cu phap AST cua tep sau bien dich
+    $astErrs = @()
+    [System.Management.Automation.Language.Parser]::ParseFile($corePath, [ref]$null, [ref]$astErrs)
+    if ($astErrs.Count -gt 0) {
+        $msg = ($astErrs | ForEach-Object { $_.Message }) -join "; "
+        throw "Loi AST parse tren Syscare.WindowsTool.ps1: $msg"
+    }
+    Write-Host "Bien dich Syscare.WindowsTool.ps1 thanh cong (AST 0 loi - PASS)." -ForegroundColor Green
+}
+
 function ConvertTo-GzipBase64 {
     param([Parameter(Mandatory = $true)][byte[]] $Bytes)
     $output = New-Object IO.MemoryStream
@@ -146,8 +178,37 @@ $utf8NoBom = New-Object Text.UTF8Encoding($false)
 [IO.File]::WriteAllText($launcherPath, $launcher, $utf8NoBom)
 [IO.File]::WriteAllText($indexPath, $launcher, $utf8NoBom)
 
+# Dong goi ban Offline Portable Air-Gapped USB ZIP
+$zipName = "Syscare-Windows-Tool-v$toolVersion.zip"
+$zipPath = Join-Path $projectRoot $zipName
+$stagingDir = Join-Path $projectRoot "build_staging"
+if (Test-Path -LiteralPath $stagingDir) { Remove-Item -LiteralPath $stagingDir -Recurse -Force }
+[void][IO.Directory]::CreateDirectory($stagingDir)
+
+$portableFiles = @(
+    '00_RUN_ADMIN_FULL.bat',
+    'Tool_Windows.bat',
+    'Syscare.WindowsTool.ps1',
+    'Syscare.Console.ps1',
+    'README.md',
+    'CHANGELOG.md',
+    'TEST_REPORT.md'
+)
+foreach ($pf in $portableFiles) {
+    $srcFile = Join-Path $projectRoot $pf
+    if (Test-Path -LiteralPath $srcFile) {
+        Copy-Item -LiteralPath $srcFile -Destination (Join-Path $stagingDir $pf) -Force
+    }
+}
+if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[System.IO.Compression.ZipFile]::CreateFromDirectory($stagingDir, $zipPath)
+Remove-Item -LiteralPath $stagingDir -Recurse -Force
+Write-Host "Tao goi Offline Portable Air-Gapped USB thanh cong: $zipName" -ForegroundColor Green
+
 $releaseFiles = @(
     '.nojekyll',
+    '00_RUN_ADMIN_FULL.bat',
     'AUDIT_REPORT.md',
     'Build-Release.mjs',
     'Build-Release.ps1',
@@ -155,7 +216,9 @@ $releaseFiles = @(
     'CNAME',
     'Invoke-JoITWindowsTool.ps1',
     'README.md',
+    'Syscare.Console.ps1',
     'Syscare.WindowsTool.ps1',
+    $zipName,
     'TEST_REPORT.md',
     'Tool_Windows.bat',
     'index.html'

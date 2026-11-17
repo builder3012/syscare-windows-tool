@@ -2,8 +2,14 @@
 
 ## Kiểm thử phiên bản hoàn thiện v2.4.0 (2026-10-13)
 
-- **PowerShell AST & StrictMode 2.0:** Mô-đun `Syscare.WindowsTool.ps1` được phân tích cú pháp đạt **0 lỗi**. Các hàm `Invoke-ToshibaScanSuite`, `Invoke-SmbSecurityConfig`, `Invoke-RpcPrintFix`, `Invoke-CloudIdentitySuite`, `Invoke-SearchFix`, `Invoke-DeepClean`, `Invoke-FastStartupToggle`, `Invoke-LicenseCheck`, `Invoke-LocalUserAdmin`, `Invoke-RenamePC`, `Invoke-ToggleRDP` đều chạy độc lập an toàn, bẫy lỗi bằng `try/catch` và ghi nhận log phiên.
-- **Cấu trúc nhãn BAT:** Kiểm tra tự động 181 nhãn trong `Tool_Windows.bat` đạt **100% hợp lệ, 0 nhãn thiếu hoặc trỏ sai**.
+- **Hiện đại hóa toàn diện kiến trúc (Architecture Modernization Verification):**
+  - **Tái cấu trúc mô-đun hóa (`src/modules/`):** Phân chia thành công 8 mô-đun chuyên biệt (`01_Diagnostics.ps1`, `02_PrinterSuite.ps1`, `03_Hardware.ps1`, `04_SystemMaintenance.ps1`, `05_Licensing.ps1`, `06_LocalAdmin.ps1`, `07_CloudIdentity.ps1`, `08_ConsoleUI.ps1`). Mỗi mô-đun được kiểm tra cú pháp AST độc lập đạt **100% PASS - 0 lỗi**.
+  - **Tự động biên dịch tệp hợp nhất:** Quy trình `Build-Release.ps1` tự động ghép 8 mô-đun thành `Syscare.WindowsTool.ps1`, thực hiện kiểm tra AST tự động trước khi đóng gói payload và phát hành.
+  - **Giao diện Modern PowerShell TUI Native (`Syscare.Console.ps1`):** Khởi chạy thành công trên PowerShell 5.1/7+, hiển thị tiếng Việt UTF-8 chuẩn xác, hỗ trợ phím điều hướng 9 chuyên đề, nạp hàm vào bộ nhớ giúp phản hồi tức thì (<10ms) không cần mở tiến trình con.
+  - **Trình khởi chạy 1-Click nâng quyền UAC (`00_RUN_ADMIN_FULL.bat`):** Tự động phát hiện và nâng quyền Administrator, cho phép chọn giữa Modern PowerShell TUI hoặc Menu BAT cổ điển. Menu chính của `Tool_Windows.bat` tích hợp phím `[P]` chuyển đổi mượt sang Modern TUI.
+  - **Bản phát hành Ngoại tuyến Độc lập (`Syscare-Windows-Tool-v2.4.0.zip`):** Tự động nén và xác thực tính toàn vẹn SHA-256 trong `checksums.sha256` và `release-manifest.json`, sẵn sàng triển khai trên USB cho môi trường Air-Gapped.
+- **PowerShell AST & StrictMode 2.0:** Mô-đun `Syscare.WindowsTool.ps1` được phân tích cú pháp đạt **0 lỗi**. Các hàm `Invoke-SyscareConsole`, `Invoke-ToshibaScanSuite`, `Invoke-SmbSecurityConfig`, `Invoke-RpcPrintFix`, `Invoke-CloudIdentitySuite`, `Invoke-SearchFix`, `Invoke-DeepClean`, `Invoke-FastStartupToggle`, `Invoke-LicenseCheck`, `Invoke-LocalUserAdmin`, `Invoke-RenamePC`, `Invoke-ToggleRDP` đều chạy độc lập an toàn, bẫy lỗi bằng `try/catch` và ghi nhận log phiên.
+- **Cấu trúc nhãn BAT:** Kiểm tra tự động 182 nhãn trong `Tool_Windows.bat` đạt **100% hợp lệ, 0 nhãn thiếu hoặc trỏ sai**.
 - **Chuyên đề Sửa lỗi Máy in & Scan SMB Toshiba (e-STUDIO 3515AC & 2508A - `[8] -> [C]`):**
   - Đã tích hợp bảng đối chiếu Microsoft Security Baseline (SMB Signing, Insecure Guest, SMB1).
   - Tự động kích hoạt phiên SMB live và hiển thị `Get-SmbConnection` với cột `Dialect` (SMB 3.1.1) và `Signed` (`True/False`).

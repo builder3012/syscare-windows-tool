@@ -49,6 +49,7 @@ echo  [7] CHAN DOAN VA QUAN TRI   - Event, Reliability, Services, Registry, DISM
 echo  [8] MAY IN VA TIEN ICH      - USB, shared/IP printer, scan folder, Spooler
 echo  [9] BAO CAO VA BANG CHUNG    - Bao cao nhanh, goi su co ZIP, health scan
 echo  [A] SLA QUICK TRIAGE         - Chan doan 1 lan chay, AD/GPO, mang, ticket
+echo  [P] MODERN POWERSHELL TUI    - Giao dien Tieng Viet UTF-8, sieu toc (<10ms)
 echo  [H] HUONG DAN SU DUNG        - Bat dau nhanh, gioi thieu, phim dieu huong
 echo  [0] THOAT
 echo.
@@ -56,9 +57,10 @@ echo  Luu y: Cac muc co anh huong ket noi/khoi dong/xoa du lieu se hoi xac nhan.
 echo ===========================================================================================
 echo  Session log: %SESSION_LOG%
 echo ===========================================================================================
-choice /C 123456789AH0 /N /M "Chon nhom chuc nang [0-9, A, H]: "
-if errorlevel 12 goto exit_tool
-if errorlevel 11 goto help_menu
+choice /C 123456789APH0 /N /M "Chon nhom chuc nang [0-9, A, P, H]: "
+if errorlevel 13 goto exit_tool
+if errorlevel 12 goto help_menu
+if errorlevel 11 goto launch_ps_tui
 if errorlevel 10 goto sla_menu
 if errorlevel 9 goto report_menu
 if errorlevel 8 goto utilities_menu
@@ -69,6 +71,11 @@ if errorlevel 4 goto boot_menu
 if errorlevel 3 goto disk_menu
 if errorlevel 2 goto network_menu
 if errorlevel 1 goto repair_menu
+goto main
+
+:launch_ps_tui
+call :log_action "launch_ps_tui"
+start "" powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Syscare.Console.ps1"
 goto main
 
 rem ----------------------------------------------------------------

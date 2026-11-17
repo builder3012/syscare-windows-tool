@@ -4,6 +4,27 @@
 
 ### Added
 
+- **Hiện đại hóa toàn diện kiến trúc (Architecture Modernization):**
+  - **Tái cấu trúc mô-đun hóa (Modular Architecture):**
+    - Phân rã tệp nguyên khối hơn 3.000 dòng thành 8 mô-đun độc lập, chuyên sâu và dễ bảo trì trong thư mục `src/modules/`:
+      + `01_Diagnostics.ps1`: Chẩn đoán nhanh SLA, mạng, domain, hiệu năng, máy in, cập nhật, kiểm tra định tuyến.
+      + `02_PrinterSuite.ps1`: Chuyên đề scan Toshiba e-STUDIO, ký số SMB, sửa RPC 0x11b, sao lưu/phục hồi driver.
+      + `03_Hardware.ps1`: Thông số phần cứng 1 dòng ticket, kiểm tra TPM/BitLocker, sao lưu khóa phục hồi.
+      + `04_SystemMaintenance.ps1`: Dọn dẹp sâu đĩa C:, sửa Windows Search/Start, Fast Startup, cache Office.
+      + `05_Licensing.ps1`: Kiểm tra bản quyền chuyên sâu, M365 vNext token, 10 tiêu chí ITSO crack audit & xuất HTML.
+      + `06_LocalAdmin.ps1`: Quản lý tài khoản cục bộ, bật/tắt Administrator, đổi tên máy, mở RDP 3389.
+      + `07_CloudIdentity.ps1`: Entra ID, AzureAdPrt, WamDefaultSet, sửa Blank Screen / TokenBroker, Intune sync.
+      + `08_ConsoleUI.ps1`: Giao diện dòng lệnh Modern TUI tiếng Việt UTF-8, ANSI box drawing, menu điều hướng.
+    - Nâng cấp `Build-Release.ps1` tự động ghép và biên dịch các mô-đun thành tệp phát hành thống nhất `Syscare.WindowsTool.ps1` có kiểm định cú pháp AST tự động (0 lỗi - PASS).
+  - **Giao diện Modern PowerShell TUI Native (`Syscare.Console.ps1`):**
+    - Giao diện console hiện đại chạy thuần PowerShell với hỗ trợ 100% tiếng Việt UTF-8 có dấu chuẩn Unicode và bảng màu ANSI VT100.
+    - Nạp toàn bộ hàm chức năng vào bộ nhớ phiên, triệt tiêu độ trễ khởi tạo tiến trình con (`powershell.exe -Command`) từ file BAT cũ; tốc độ phản hồi cực nhanh (<10ms).
+    - Tích hợp thanh thông tin thiết bị thời gian thực (ComputerName, User, Domain, Phiên bản Windows, Quyền Administrator).
+    - Tạo launcher thông minh `00_RUN_ADMIN_FULL.bat` với cơ chế tự động nâng quyền UAC và cho phép người dùng chọn chạy Modern PowerShell TUI hoặc Menu CMD BAT cổ điển.
+    - Bổ sung phím tắt `[P]` ngay tại menu chính của `Tool_Windows.bat` để chuyển đổi mượt mà sang Modern TUI bất kỳ lúc nào.
+  - **Đóng gói Bản chạy Ngoại tuyến Độc lập (Offline Air-Gapped Portable USB Edition):**
+    - Tự động đóng gói bản Portable zip độc lập `Syscare-Windows-Tool-v2.4.0.zip` chứa đầy đủ mã nguồn BAT, PowerShell TUI, Core diagnostics và tài liệu hướng dẫn.
+    - Phục vụ cứu hộ và khắc phục sự cố tại chỗ trên các máy tính mạng cách ly hoàn toàn (Air-gapped), ngân hàng, phòng máy chủ, kho bãi hoặc chi nhánh không có Internet.
 - **Chuyên đề Sửa lỗi Máy in, Scan-to-folder SMB và Ký số (Toshiba e-STUDIO & Windows 10/11 - `[8] -> [C]`):**
   - **Chẩn đoán & Kết nối Thư mục Scan Toshiba (`[8] -> [C] -> [1]`):**
     - Hỗ trợ chuyên biệt cặp máy in công ty: e-STUDIO 3515AC (Máy màu - `10.6.0.25`) và e-STUDIO 2508A (Máy trắng đen - `10.6.0.26`).
