@@ -211,8 +211,8 @@ function Invoke-DomainRepair {
     Write-Host '           KIEM TRA VA SUA LOI QUAN HE TIN CAY DOMAIN (SECURE CHANNEL)' -ForegroundColor Cyan
     Write-Host '===========================================================================================' -ForegroundColor Cyan
 
-    $cs = Get-CimInstance Win32_ComputerSystem
-    if (-not $cs.PartOfDomain) {
+    $cs = try { Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue } catch { $null }
+    if ($null -eq $cs -or -not $cs.PartOfDomain) {
         Write-Host ' [THONG BAO] May tinh nay dang o che do WORKGROUP, khong gia nhap Domain Active Directory.' -ForegroundColor Yellow
         Write-Host ' Chuc nang sua Secure Channel chi ap dung cho may tinh thuoc Domain.' -ForegroundColor Gray
         return

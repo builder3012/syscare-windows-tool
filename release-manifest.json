@@ -1,7 +1,7 @@
 {
     "name":  "Syscare Windows Tool",
     "version":  "2.4.0",
-    "generatedUtc":  "2026-11-17T08:52:16Z",
+    "generatedUtc":  "2026-11-23T02:27:40Z",
     "officialUrl":  "https://win.syscare.site",
     "minimumPowerShell":  "5.1",
     "launcherPayloads":  [
@@ -12,8 +12,8 @@
                              },
                              {
                                  "file":  "Syscare.WindowsTool.ps1",
-                                 "sha256":  "507FBEE1A7ACEA7C4A3E15DC80839D64F91D52662B51E58962B6CF75E0218806",
-                                 "bytes":  196541
+                                 "sha256":  "7DF77A7551A6D990E8AA2EF3A161C8FB28F8AC3A1E8710E821D72A8A635066B3",
+                                 "bytes":  194977
                              }
                          ],
     "files":  [
@@ -34,8 +34,8 @@
                   },
                   {
                       "File":  "Build-Release.ps1",
-                      "SHA256":  "B2BFF8702BB93EF3B134E7B59F8143F47462CAF940D17261BC350033A6B0027F",
-                      "Bytes":  10071
+                      "SHA256":  "6A6A03C69AAD7E9E45877BAC1893EE92E52048E801122A3862DCD88D4D80935B",
+                      "Bytes":  10074
                   },
                   {
                       "File":  "CHANGELOG.md",
@@ -49,8 +49,8 @@
                   },
                   {
                       "File":  "Invoke-JoITWindowsTool.ps1",
-                      "SHA256":  "EDB89013251120F6B50B3E6A11554DBA92CE9B8566A2CBE46A39A0673F6A0EA3",
-                      "Bytes":  78584
+                      "SHA256":  "1B26E97ADA62BBDD56B4519D4C13A6FCC9999FE956F271A4A52B0DC91FB9379E",
+                      "Bytes":  78164
                   },
                   {
                       "File":  "README.md",
@@ -64,13 +64,13 @@
                   },
                   {
                       "File":  "Syscare.WindowsTool.ps1",
-                      "SHA256":  "507FBEE1A7ACEA7C4A3E15DC80839D64F91D52662B51E58962B6CF75E0218806",
-                      "Bytes":  196541
+                      "SHA256":  "7DF77A7551A6D990E8AA2EF3A161C8FB28F8AC3A1E8710E821D72A8A635066B3",
+                      "Bytes":  194977
                   },
                   {
                       "File":  "Syscare-Windows-Tool-v2.4.0.zip",
-                      "SHA256":  "1C910C4DCBCC54F6E98AFB93AFBC200CB1884A85F4DC3430BA3BD3CEC6F29BDA",
-                      "Bytes":  77706
+                      "SHA256":  "C76A6CBB12813D59611CE0A52F19CBBAB16A228AE1CEE838C529E01405E2F825",
+                      "Bytes":  77392
                   },
                   {
                       "File":  "TEST_REPORT.md",
@@ -84,8 +84,8 @@
                   },
                   {
                       "File":  "index.html",
-                      "SHA256":  "EDB89013251120F6B50B3E6A11554DBA92CE9B8566A2CBE46A39A0673F6A0EA3",
-                      "Bytes":  78584
+                      "SHA256":  "1B26E97ADA62BBDD56B4519D4C13A6FCC9999FE956F271A4A52B0DC91FB9379E",
+                      "Bytes":  78164
                   }
               ]
 }

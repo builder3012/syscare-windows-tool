@@ -9,8 +9,9 @@
     # -------------------------------------------------------------
     # 1. THONG TIN BAN QUYEN WINDOWS
     # -------------------------------------------------------------
-    $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
-    $winVer = if ($os) { "{0} ({1})" -f $os.Caption, $os.OSArchitecture } else { "Windows 10/11" }
+    $os = $null
+    try { $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue } catch { }
+    $winVer = if ($os -and $os.Caption) { "{0} ({1})" -f $os.Caption, $os.OSArchitecture } else { "Windows 10/11" }
     $installDate = if ($os -and $os.InstallDate) { $os.InstallDate.ToString('dd/MM/yyyy HH:mm:ss') } else { "N/A" }
 
     $xprRaw = ""
@@ -72,12 +73,14 @@
 
     $o365Name = "Chua cai dat Microsoft Office"
     $o365Ver = "N/A"
-    $c2rConfig = "HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration"
-    if (Test-Path -LiteralPath $c2rConfig) {
-        $p = Get-ItemProperty -Path $c2rConfig -ErrorAction SilentlyContinue
-        if ($p.ProductReleaseIds) { $o365Name = $p.ProductReleaseIds }
-        if ($p.VersionToReport) { $o365Ver = "{0} ({1})" -f $p.VersionToReport, $p.Platform }
-    }
+    try {
+        $c2rConfig = "HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration"
+        if (Test-Path -LiteralPath $c2rConfig -ErrorAction SilentlyContinue) {
+            $p = Get-ItemProperty -Path $c2rConfig -ErrorAction SilentlyContinue
+            if ($p -and $p.ProductReleaseIds) { $o365Name = $p.ProductReleaseIds }
+            if ($p -and $p.VersionToReport) { $o365Ver = "{0} ({1})" -f $p.VersionToReport, $p.Platform }
+        }
+    } catch { }
 
     switch ($o365Name) {
         'O365BusinessRetail'     { $o365Name = 'Microsoft 365 Apps for business' }
@@ -121,33 +124,35 @@
     } catch { }
 
     $licFolder = Join-Path $env:LOCALAPPDATA "Microsoft\Office\Licenses"
-    if (Test-Path -LiteralPath $licFolder) {
-        $files = Get-ChildItem -Path $licFolder -Recurse -File -ErrorAction SilentlyContinue
-        foreach ($f in $files) {
-            try {
-                $raw = [IO.File]::ReadAllBytes($f.FullName)
-                $text = [Text.Encoding]::Unicode.GetString($raw)
-                if ($text -notmatch '^{') { $text = [Text.Encoding]::UTF8.GetString($raw) }
-                $obj = ConvertFrom-Json $text -ErrorAction SilentlyContinue
-                if ($obj -and $obj.License) {
-                    $licStr = [string]$obj.License
-                    $pad = (4 - ($licStr.Length % 4)) % 4
-                    $licStr += ("=" * $pad)
-                    $licBytes = [Convert]::FromBase64String($licStr)
-                    $licJson = [Text.Encoding]::UTF8.GetString($licBytes) | ConvertFrom-Json
-                    if ($licJson) {
-                        $vnextFound = $true
-                        $vnextType = [string]$licJson.LicenseType
-                        $vnextStatus = [string]$licJson.Status
-                        if ($licJson.Metadata) {
-                            $vnextTenant = [string]$licJson.Metadata.TenantId
+    try {
+        if (Test-Path -LiteralPath $licFolder -ErrorAction SilentlyContinue) {
+            $files = Get-ChildItem -Path $licFolder -Recurse -File -ErrorAction SilentlyContinue
+            foreach ($f in $files) {
+                try {
+                    $raw = [IO.File]::ReadAllBytes($f.FullName)
+                    $text = [Text.Encoding]::Unicode.GetString($raw)
+                    if ($text -notmatch '^{') { $text = [Text.Encoding]::UTF8.GetString($raw) }
+                    $obj = ConvertFrom-Json $text -ErrorAction SilentlyContinue
+                    if ($obj -and $obj.License) {
+                        $licStr = [string]$obj.License
+                        $pad = (4 - ($licStr.Length % 4)) % 4
+                        $licStr += ("=" * $pad)
+                        $licBytes = [Convert]::FromBase64String($licStr)
+                        $licJson = [Text.Encoding]::UTF8.GetString($licBytes) | ConvertFrom-Json
+                        if ($licJson) {
+                            $vnextFound = $true
+                            $vnextType = [string]$licJson.LicenseType
+                            $vnextStatus = [string]$licJson.Status
+                            if ($licJson.Metadata) {
+                                $vnextTenant = [string]$licJson.Metadata.TenantId
+                            }
+                            break
                         }
-                        break
                     }
-                }
-            } catch { }
+                } catch { }
+            }
         }
-    }
+    } catch { }
 
     Write-Host ("- Goi cai dat         : {0}" -f $o365Name)
     Write-Host ("- Phien ban ung dung  : {0}" -f $o365Ver)
@@ -170,9 +175,11 @@
         "${env:ProgramFiles(x86)}\Microsoft Office\Office14\ospp.vbs"
     )
     $foundOspp = $null
-    foreach ($op in $osppPaths) {
-        if (Test-Path -LiteralPath $op) { $foundOspp = $op; break }
-    }
+    try {
+        foreach ($op in $osppPaths) {
+            if (Test-Path -LiteralPath $op -ErrorAction SilentlyContinue) { $foundOspp = $op; break }
+        }
+    } catch { }
     $osppOutput = ""
     if ($foundOspp) {
         try {
@@ -283,7 +290,12 @@
         "$env:SystemRoot\SECOH-QAD.exe",
         "$env:SystemRoot\System32\SppExtComObjHook.dll"
     )
-    $foundPaths = @($crackPaths | Where-Object { Test-Path -LiteralPath $_ })
+    $foundPaths = @()
+    try {
+        $foundPaths = @($crackPaths | Where-Object {
+            try { Test-Path -LiteralPath $_ -ErrorAction SilentlyContinue } catch { $false }
+        })
+    } catch { }
     if ($foundPaths.Count -gt 0) {
         [void]$results.Add(@{ Name = "Thu muc Tool lau"; Status = "-"; Detail = "Phat hien tep/thu muc: " + ($foundPaths -join ', ') })
     } else {

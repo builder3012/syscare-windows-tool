@@ -42,8 +42,8 @@ if (Test-Path -LiteralPath $srcDir) {
         [void]$compiledContent.AppendLine('')
     }
 
-    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-    [IO.File]::WriteAllText($corePath, $compiledContent.ToString().TrimEnd() + "`r`n", $utf8NoBom)
+    $utf8WithBom = New-Object System.Text.UTF8Encoding($true)
+    [IO.File]::WriteAllText($corePath, $compiledContent.ToString().TrimEnd() + "`r`n", $utf8WithBom)
 
     # Kiem tra cu phap AST cua tep sau bien dich
     $astErrs = @()

@@ -62,13 +62,15 @@ function Test-RebootPending {
 }
 
 function Get-DomainState {
-    $computer = Get-CimInstance Win32_ComputerSystem
+    $computer = try { Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue } catch { $null }
+    $partOfDomain = if ($computer) { [bool]$computer.PartOfDomain } else { $false }
+    $domain = if ($computer) { [string]$computer.Domain } else { $env:USERDOMAIN }
     $state = [ordered]@{
-        PartOfDomain  = [bool]$computer.PartOfDomain
-        Domain        = [string]$computer.Domain
+        PartOfDomain  = $partOfDomain
+        Domain        = $domain
         SecureChannel = 'Not applicable'
     }
-    if ($computer.PartOfDomain) {
+    if ($partOfDomain) {
         try { $state.SecureChannel = [string](Test-ComputerSecureChannel -ErrorAction Stop) }
         catch { $state.SecureChannel = 'ERROR: ' + $_.Exception.Message }
     }
@@ -86,10 +88,10 @@ function Get-DefaultGateway {
 }
 
 function Get-TriageSummary {
-    $os = Get-CimInstance Win32_OperatingSystem
-    $computer = Get-CimInstance Win32_ComputerSystem
+    $os = try { Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue } catch { $null }
+    $computer = try { Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue } catch { $null }
     $domain = Get-DomainState
-    $systemDrive = Get-CimInstance Win32_LogicalDisk -Filter ("DeviceID='{0}'" -f $env:SystemDrive)
+    $systemDrive = try { Get-CimInstance Win32_LogicalDisk -Filter ("DeviceID='{0}'" -f $env:SystemDrive) -ErrorAction SilentlyContinue } catch { $null }
     $gateway = Get-DefaultGateway
     $internet = $false
     $dns = $false
@@ -100,9 +102,9 @@ function Get-TriageSummary {
         try { $gatewayReachable = [bool](Test-Connection -ComputerName $gateway -Count 1 -Quiet -ErrorAction Stop) } catch { $gatewayReachable = $false }
     }
     $spooler = Get-Service -Name Spooler -ErrorAction SilentlyContinue
-    $freeGb = if ($systemDrive) { [math]::Round($systemDrive.FreeSpace / 1GB, 1) } else { $null }
-    $totalGb = if ($systemDrive) { [math]::Round($systemDrive.Size / 1GB, 1) } else { $null }
-    $freeMemoryGb = [math]::Round($os.FreePhysicalMemory / 1MB, 1)
+    $freeGb = if ($systemDrive -and $systemDrive.FreeSpace) { [math]::Round($systemDrive.FreeSpace / 1GB, 1) } else { $null }
+    $totalGb = if ($systemDrive -and $systemDrive.Size) { [math]::Round($systemDrive.Size / 1GB, 1) } else { $null }
+    $freeMemoryGb = if ($os -and $os.FreePhysicalMemory) { [math]::Round($os.FreePhysicalMemory / 1MB, 1) } else { $null }
     $totalMemoryGb = [math]::Round($computer.TotalPhysicalMemory / 1GB, 1)
     $lastBoot = [datetime]$os.LastBootUpTime
     $uptimeHours = [math]::Round(((Get-Date) - $lastBoot).TotalHours, 1)
